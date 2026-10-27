@@ -12,6 +12,13 @@ def test_scenarios_detected_before_peak():
     assert BACKTEST["false_alarms"] <= 2
 
 
+def test_missed_areas_reported_as_known_limit():
+    by_id = {s["id"]: s for s in BACKTEST["scenarios"]}
+    # S2: GBC Site B only had its absence signal in window, never corroborated on two consecutive days.
+    assert by_id["S2"]["missed_areas"] == ["gbc_site_b"]
+    assert by_id["S1"]["missed_areas"] == []
+
+
 def test_small_cells_suppressed():
     rows = client.get("/api/signals", params={"area_id": "gbc_site_a"}).json()["signals"]["incidents"]
     assert all(r["value"] is None or r["value"] == 0 or r["value"] >= 5 for r in rows)

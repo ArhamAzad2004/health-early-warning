@@ -174,9 +174,10 @@ def _metrics(alerts):
         tp = [al for al in alerts if hits(al, sc)]
         first = min((al["start"] for al in tp), default=None)
         lead = (sc["peak"] - DATES[DATE_ISO.index(first)]).days if first else None
+        hit = sorted({al["area_id"] for al in tp})
         per.append(dict(id=sc["id"], name=sc["name"], peak=sc["peak"].isoformat(), detected=bool(tp),
-                        first_alert=first, lead_time_days=lead, areas_hit=sorted({al["area_id"] for al in tp}),
-                        areas_affected=sc["areas"]))
+                        first_alert=first, lead_time_days=lead, areas_hit=hit, areas_affected=sc["areas"],
+                        missed_areas=sorted(set(sc["areas"]) - set(hit))))
     true_alerts = [al for al in alerts if any(hits(al, sc) for sc in SCENARIOS)]
     pairs = sum(len(sc["areas"]) for sc in SCENARIOS)
     leads = [p["lead_time_days"] for p in per if p["lead_time_days"] is not None]
