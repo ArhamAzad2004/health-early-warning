@@ -44,6 +44,13 @@ Open http://localhost:5173, press **Play** on the timeline, then click an alert.
 
 Tests: `cd backend && .venv/Scripts/python -m pytest -q`
 
+## Deploy (one public link)
+
+The `Dockerfile` builds the dashboard and serves it from the API, so the whole demo is one app.
+On [Render](https://render.com): **New → Blueprint**, pick this repo, and it reads `render.yaml`
+(free plan, redeploys on every merge to `main`). Locally, `npm run build` in `frontend/` then start
+the backend and open http://localhost:8000.
+
 ## Layout
 
 - `backend/app/sim.py` — synthetic Dubai districts, work sites, signals and injected scenarios
