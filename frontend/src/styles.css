@@ -36,6 +36,7 @@ nav { display: flex; gap: 4px; flex: 1; }
 .overview { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); gap: 16px; }
 .map { height: 460px; border-radius: 8px; }
 .replay { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.jumps { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .replay input { flex: 1; accent-color: var(--accent); }
 .legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }

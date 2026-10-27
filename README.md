@@ -23,26 +23,26 @@ Current back-test: both outbreaks caught **3–5 days before their harm peak**, 
 
 ## Run it locally
 
-Needs Python 3.11+ and Node 20+.
+Needs Python 3.11+ and Node 20+. From the project folder:
 
 ```bash
-cd backend
-python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt   # macOS/Linux: .venv/bin/python
-.venv/Scripts/python -m uvicorn app.main:app --port 8000
+npm run setup
 ```
 
-In a second terminal:
-
 ```bash
-cd frontend
-npm install
 npm run dev
 ```
 
 Open http://localhost:5173, press **Play** on the timeline, then click an alert.
 
-Tests: `cd backend && .venv/Scripts/python -m pytest -q`
+Tests: `npm test`
+
+## Deploy (one public link)
+
+The `Dockerfile` builds the dashboard and serves it from the API, so the whole demo is one app.
+On [Render](https://render.com): **New → Blueprint**, pick this repo, and it reads `render.yaml`
+(free plan, redeploys on every merge to `main`). Locally, `npm run build` in `frontend/` then start
+the backend and open http://localhost:8000.
 
 ## Layout
 

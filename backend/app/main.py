@@ -1,12 +1,16 @@
 import json
+import os
 import ssl
+import time
 import urllib.request
 from datetime import date
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.staticfiles import StaticFiles
 
 from . import engine
-from .sim import AREAS, DATES, SIGNALS, generate
+from .sim import AREAS, DATES, SCENARIOS, SIGNALS, generate
 
 app = FastAPI(title="Sentinel Dubai – health early warning")
 
@@ -15,6 +19,7 @@ SCORES, ALERTS = engine.run(DATA)
 BACKTEST = engine.backtest(DATA, ALERTS)
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
+LIVE_CACHE = []  # [fetched_at, result]; protects the free Open-Meteo quota once the demo is public
 Role = Query("public_health", pattern="^(public_health|employer_hse|public)$")
 ENV = {"heat_index", "aqi"}
 # Demo host may sit behind a proxy without a CA bundle; public-data endpoints tolerate unverified TLS.
@@ -38,7 +43,8 @@ def suppress(signal, v):
 @app.get("/api/meta")
 def meta():
     return dict(start=DATES[0].isoformat(), end=DATES[-1].isoformat(), signals=SIGNALS,
-                levels=dict(watch=engine.WATCH, warning=engine.WARNING, alert=engine.ALERT))
+                levels=dict(watch=engine.WATCH, warning=engine.WARNING, alert=engine.ALERT),
+                scenarios=[dict(id=s["id"], short=s["short"], peak=s["peak"].isoformat()) for s in SCENARIOS])  # no site names: public role reads this too
 
 
 @app.get("/api/areas")
@@ -59,6 +65,8 @@ def signals(area_id: str, role: str = Role):
         for i, v in enumerate(values):
             val, sup = suppress(s, v)
             mean, z, _ = sc["zs"][s][i]
+            if sup:  # baseline + z would let anyone rebuild the hidden count
+                mean = z = None
             rows.append(dict(date=DATES[i].isoformat(), value=val, suppressed=sup, missing=v is None, baseline=mean, z=z))
         out[s] = rows
     risk = [dict(date=DATES[i].isoformat(), risk=d["risk"], level=engine.level(d["risk"])) for i, d in enumerate(sc["days"])]
@@ -79,9 +87,15 @@ def risk(date: str, role: str = Role):
     return out
 
 
+def hide_small(e):
+    """Evidence row with a 1-4 count blanked, along with the baseline and z that would reveal it."""
+    val, sup = suppress(e["signal"], e["value"])
+    return dict(e, value=val, baseline=None, z=None) if sup else e
+
+
 @app.get("/api/alerts")
 def alerts(role: str = Role):
-    out = [dict(al, evidence=[dict(e, value=suppress(e["signal"], e["value"])[0]) for e in al["evidence"]])
+    out = [dict(al, evidence=[hide_small(e) for e in al["evidence"]])
            for al in ALERTS if visible(role, al["area_id"])]
     if role == "public":  # the public sees advisories, not the underlying health counts
         out = [{k: v for k, v in al.items() if k in ("id", "area_id", "area", "start", "end", "level", "action", "category")} for al in out]
@@ -97,7 +111,9 @@ def backtest(role: str = Role):
 
 @app.get("/api/live")
 def live():
-    """Current Dubai weather and air quality from Open-Meteo (free, no key)."""
+    """Current Dubai weather and air quality from Open-Meteo (free, no key), cached for 10 minutes."""
+    if LIVE_CACHE and time.monotonic() - LIVE_CACHE[0] < 600:
+        return LIVE_CACHE[1]
     lat, lon = 25.2048, 55.2708
     urls = {
         "weather": f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
@@ -107,9 +123,17 @@ def live():
     }
     try:
         got = {k: json.load(urllib.request.urlopen(u, timeout=6, context=_LIVE_CTX))["current"] for k, u in urls.items()}
-    except Exception as e:  # offline demo must still work
-        return dict(ok=False, error=str(e), fetched=date.today().isoformat())
+    except Exception:  # offline demo must still work
+        return dict(ok=False, error="unavailable", fetched=date.today().isoformat())
     w, a = got["weather"], got["air"]
-    return dict(ok=True, time=w["time"], temperature=w["temperature_2m"], humidity=w["relative_humidity_2m"],
+    result = dict(ok=True, time=w["time"], temperature=w["temperature_2m"], humidity=w["relative_humidity_2m"],
                 feels_like=w["apparent_temperature"], pm10=a.get("pm10"), pm2_5=a.get("pm2_5"),
                 us_aqi=a.get("us_aqi"), dust=a.get("dust"), source="Open-Meteo")
+    LIVE_CACHE[:] = [time.monotonic(), result]
+    return result
+
+
+# Serve the built dashboard from the same app, so one link runs the whole demo. Mounted last so /api wins.
+STATIC_DIR = Path(os.environ.get("STATIC_DIR", Path(__file__).resolve().parents[2] / "frontend" / "dist"))
+if STATIC_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="dashboard")
