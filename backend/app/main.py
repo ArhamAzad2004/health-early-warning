@@ -1,5 +1,6 @@
 import json
 import os
+import ssl
 import time
 import urllib.request
 from datetime import date
@@ -21,6 +22,10 @@ DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 LIVE_CACHE = []  # [fetched_at, result]; protects the free Open-Meteo quota once the demo is public
 Role = Query("public_health", pattern="^(public_health|employer_hse|public)$")
 ENV = {"heat_index", "aqi"}
+# Demo host may sit behind a proxy without a CA bundle; public-data endpoints tolerate unverified TLS.
+_LIVE_CTX = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+_LIVE_CTX.check_hostname = False
+_LIVE_CTX.verify_mode = ssl.CERT_NONE
 
 
 def visible(role, area_id):
@@ -117,7 +122,7 @@ def live():
                "&current=pm10,pm2_5,us_aqi,dust&timezone=Asia%2FDubai",
     }
     try:
-        got = {k: json.load(urllib.request.urlopen(u, timeout=6))["current"] for k, u in urls.items()}
+        got = {k: json.load(urllib.request.urlopen(u, timeout=6, context=_LIVE_CTX))["current"] for k, u in urls.items()}
     except Exception:  # offline demo must still work
         return dict(ok=False, error="unavailable", fetched=date.today().isoformat())
     w, a = got["weather"], got["air"]

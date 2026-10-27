@@ -19,7 +19,7 @@ quality come from [Open-Meteo](https://open-meteo.com) (free, no key).
 | 5. Validation | Validation tab: lead time, detection, PPV, false alarms, latency, threshold calibration, missing-feed test |
 | 6. Impact | Validation tab: estimated lost workdays and incidents avoided, with stated assumptions |
 
-Current back-test: both outbreaks caught **3–5 days before their harm peak**, PPV 80%, 1 false alarm in 5 months across 11 areas.
+Current back-test: both outbreaks caught **3–5 days before their harm peak**, PPV 80%, 1 false alarm in 5 months across 11 areas. GBC Site B was missed in the dust-storm scenario — **accepted known limit**, surfaced on the Validation page.
 
 ## Run it locally
 
