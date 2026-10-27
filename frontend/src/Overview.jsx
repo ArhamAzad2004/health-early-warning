@@ -74,6 +74,14 @@ export default function Overview({ role, date, setDate, onOpen }) {
             onChange={e => setDate(days[+e.target.value])} aria-label="Replay date" />
           <span className="mono">{date}</span>
         </div>
+        <div className="jumps">
+          <span className="muted small">Jump to</span>
+          {meta?.scenarios.map(s => (
+            <button key={s.id} className="btn" title={s.name} onClick={() => { setPlaying(false); setDate(s.peak) }}>
+              {s.short} · {fmtDate(s.peak)}
+            </button>
+          ))}
+        </div>
         <p className="muted small">Replay shows what was known on each day — every signal arrives after its reporting delay. Dashed circles are Gulf Build Co. work sites.</p>
       </section>
 

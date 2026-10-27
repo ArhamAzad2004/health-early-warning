@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import FastAPI, HTTPException, Query
 
 from . import engine
-from .sim import AREAS, DATES, SIGNALS, generate
+from .sim import AREAS, DATES, SCENARIOS, SIGNALS, generate
 
 app = FastAPI(title="Sentinel Dubai – health early warning")
 
@@ -33,7 +33,8 @@ def suppress(signal, v):
 @app.get("/api/meta")
 def meta():
     return dict(start=DATES[0].isoformat(), end=DATES[-1].isoformat(), signals=SIGNALS,
-                levels=dict(watch=engine.WATCH, warning=engine.WARNING, alert=engine.ALERT))
+                levels=dict(watch=engine.WATCH, warning=engine.WARNING, alert=engine.ALERT),
+                scenarios=[dict(id=s["id"], short=s["short"], name=s["name"], peak=s["peak"].isoformat()) for s in SCENARIOS])
 
 
 @app.get("/api/areas")
