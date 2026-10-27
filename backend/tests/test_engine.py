@@ -44,3 +44,12 @@ def test_pitch_numbers_unchanged():
 def test_meta_lists_demo_scenarios():
     scenarios = client.get("/api/meta").json()["scenarios"]
     assert [s["short"] for s in scenarios] == ["Heat cluster", "Dust storm"]
+
+
+def test_suppressed_cells_reveal_nothing():
+    """Baseline and z on a hidden cell would let anyone rebuild the 1-4 count."""
+    for role, area in [("employer_hse", "gbc_site_a"), ("public_health", "jebel_ali")]:
+        for rows in client.get("/api/signals", params={"area_id": area, "role": role}).json()["signals"].values():
+            assert all(r["baseline"] is None and r["z"] is None for r in rows if r["suppressed"])
+    for al in client.get("/api/alerts").json():
+        assert all(e["baseline"] is None and e["z"] is None for e in al["evidence"] if e["value"] is None)
