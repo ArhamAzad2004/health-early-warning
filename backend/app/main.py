@@ -1,9 +1,12 @@
 import json
+import os
 import time
 import urllib.request
 from datetime import date
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.staticfiles import StaticFiles
 
 from . import engine
 from .sim import AREAS, DATES, SIGNALS, generate
@@ -122,3 +125,9 @@ def live():
                 us_aqi=a.get("us_aqi"), dust=a.get("dust"), source="Open-Meteo")
     LIVE_CACHE[:] = [time.monotonic(), result]
     return result
+
+
+# Serve the built dashboard from the same app, so one link runs the whole demo. Mounted last so /api wins.
+STATIC_DIR = Path(os.environ.get("STATIC_DIR", Path(__file__).resolve().parents[2] / "frontend" / "dist"))
+if STATIC_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="dashboard")
