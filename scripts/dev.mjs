@@ -32,7 +32,9 @@ if (mode === 'setup') {
     spawn('npm', ['run', 'dev', '--', '--port', '5173'], { ...opts('npm'), cwd: 'frontend' }),
   ]
   console.log('\nAPI on http://localhost:8000 · dashboard on http://localhost:5173 (Ctrl+C stops both)\n')
-  const stop = () => { procs.forEach(p => p.kill()); process.exit() }
+  // On Windows npm runs inside cmd.exe, so kill the whole process tree or Vite keeps port 5173.
+  const kill = p => (win ? spawnSync('taskkill', ['/pid', String(p.pid), '/T', '/F'], { stdio: 'ignore' }) : p.kill())
+  const stop = () => { procs.forEach(kill); process.exit() }
   process.on('SIGINT', stop)
   procs.forEach(p => p.on('exit', code => { if (code) { console.error('A server stopped; shutting down.'); stop() } }))
 }
