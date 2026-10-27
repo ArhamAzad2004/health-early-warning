@@ -34,7 +34,7 @@ def suppress(signal, v):
 def meta():
     return dict(start=DATES[0].isoformat(), end=DATES[-1].isoformat(), signals=SIGNALS,
                 levels=dict(watch=engine.WATCH, warning=engine.WARNING, alert=engine.ALERT),
-                scenarios=[dict(id=s["id"], short=s["short"], name=s["name"], peak=s["peak"].isoformat()) for s in SCENARIOS])
+                scenarios=[dict(id=s["id"], short=s["short"], peak=s["peak"].isoformat()) for s in SCENARIOS])  # no site names: public role reads this too
 
 
 @app.get("/api/areas")
