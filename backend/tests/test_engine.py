@@ -31,6 +31,21 @@ def test_alert_explains_itself():
     assert al["contributions"] and al["evidence"] and al["roles"] and al["action"] and al["assumptions"]
 
 
+def test_pitch_numbers_unchanged():
+    """These numbers are quoted in README, docs/PRD.md, docs/TRD.md and the slides.
+    If tuning changes them on purpose, update those places and then this test."""
+    assert BACKTEST["sensitivity"] == 1.0
+    assert BACKTEST["area_sensitivity"] == 0.8
+    assert BACKTEST["ppv"] == 0.8
+    assert BACKTEST["false_alarms"] == 1
+    assert [s["lead_time_days"] for s in BACKTEST["scenarios"]] == [5, 3]
+
+
+def test_meta_lists_demo_scenarios():
+    scenarios = client.get("/api/meta").json()["scenarios"]
+    assert [s["short"] for s in scenarios] == ["Heat cluster", "Dust storm"]
+
+
 def test_suppressed_cells_reveal_nothing():
     """Baseline and z on a hidden cell would let anyone rebuild the 1-4 count."""
     for role, area in [("employer_hse", "gbc_site_a"), ("public_health", "jebel_ali")]:
