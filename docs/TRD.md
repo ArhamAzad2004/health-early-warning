@@ -91,13 +91,13 @@ Each alert also carries `category` (`heat` or `respiratory`) and five `assumptio
 
 Detection is latency-aware by construction (step 4 above), so the stored alerts are already what an operator would have seen day by day. `engine.backtest()` then reports:
 
-1. Per scenario: `detected`, `first_alert` (earliest alert start in any scenario area overlapping the window), `lead_time_days = peak − first_alert`, `areas_hit`, `areas_affected`.
+1. Per scenario: `detected`, `first_alert` (earliest alert start in any scenario area overlapping the window), `lead_time_days = peak − first_alert`, `areas_hit`, `areas_affected`, and `missed_areas` (affected areas with no alert — accepted known limits, e.g. GBC Site B in S2).
 2. Overall: `sensitivity` (scenarios detected / 2), `area_sensitivity` (scenario-area pairs hit / 5), `ppv` (true alerts / all alerts), `false_alarms`, `total_alerts`, `mean_lead_time_days`, `data_latency_days` per signal, `median_latency_days` (median of the 7 latencies = 1).
 3. `missing_input`: the same metrics re-run without `incidents`, `absence`, `aqi`, `heat_index`, `lab_resp_pos` in turn.
 4. `calibration`: sensitivity, PPV, false alarms and mean lead time at watch thresholds 3.0 … 6.0.
 5. `impact`: excess `absence` and `incidents` (observed − baseline) at GBC sites in scenario areas from first alert to scenario end; avoided = excess × 30 % effectiveness; high-severity = 10 % of avoided incidents. Assumptions returned as text.
 
-Current result (seed 42): sensitivity 1.0, area sensitivity 0.8 (GBC Site B not alerted), PPV 0.8, 1 false alarm (Al Quoz, late June, heat pattern), lead time S1 5 days, S2 3 days.
+Current result (seed 42): sensitivity 1.0, area sensitivity 0.8 (GBC Site B not alerted — accepted known limit, surfaced on the Validation page), PPV 0.8, 1 false alarm (Al Quoz, late June, heat pattern), lead time S1 5 days, S2 3 days.
 
 ## 8. Live data integration
 

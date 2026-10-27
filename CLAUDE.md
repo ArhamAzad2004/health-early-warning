@@ -22,5 +22,5 @@ Prototype that fuses simulated Dubai health, workforce and environmental signals
 
 ## Tuning
 - Thresholds and weights are constants at the top of `engine.py`. If you change them, re-run the back-test and update the numbers quoted in `README.md`, `docs/PRD.md` and `docs/TRD.md`.
-- Current back-test: both scenarios detected, lead 5 d (S1) / 3 d (S2), PPV 0.8, 1 false alarm. Known gaps: GBC Site B missed in S2; AQI picks up ~12% share in the Site A heat alert.
+- Current back-test: both scenarios detected, lead 5 d (S1) / 3 d (S2), PPV 0.8, 1 false alarm. Known limit (accepted): GBC Site B missed in S2 (absence-only workplace signal in the dust event did not corroborate on two consecutive days) — surfaced on the Validation page as a known limit; AQI picks up ~12% share in the Site A heat alert.
 - Design: colour-blind-safe level colours (`frontend/src/api.js`) always paired with text labels; see `docs/DESIGN_BRIEF.md`.

@@ -60,7 +60,7 @@ Sentinel Dubai is an early-warning console that fuses population, environmental,
 | 2 | Explainable anomaly detection | Contribution shares per signal over the alert window, plus an evidence row per signal: the day, observed value, baseline and z. The area and start/end dates are on the card. |
 | 3 | Actionable decision support | Action card: "Enforce midday work-break and hydration protocol at site; move heavy work before 11:00; daily heat-illness check-ins by site medic" — roles: Site HSE Manager (Gulf Build Co.), Occupational Health Inspector (regulator); evidence and assumptions listed. |
 | 4 | Privacy-preserving views | Switch to `public`: sites vanish, only advisories remain, Validation returns 403. Switch to `employer_hse`: only GBC sites. Counts under 5 show "<5". Banner: "Not for individual employment or disciplinary use". |
-| 5 | Operational validation | Validation page: S1 detected 5 days before harm peak, S2 3 days; sensitivity 1.0; area sensitivity 0.8 (GBC Site B missed — shown, not hidden); PPV 0.8; 1 false alarm (Al Quoz heat, late June); median data latency 1 day; re-runs without incidents / absence / aqi / heat_index / lab_resp_pos; calibration sweep 3.0–6.0. |
+| 5 | Operational validation | Validation page: S1 detected 5 days before harm peak, S2 3 days; sensitivity 1.0; area sensitivity 0.8 (GBC Site B missed — accepted known limit, shown on the Validation page); PPV 0.8; 1 false alarm (Al Quoz heat, late June); median data latency 1 day; re-runs without incidents / absence / aqi / heat_index / lab_resp_pos; calibration sweep 3.0–6.0. |
 | 6 | Health and resilience impact | Impact box: excess absence days and incidents at GBC sites after first alert × 30 % intervention effectiveness → avoided lost workdays and avoided high-severity incidents (10 % severity share). Assumptions printed beside the numbers. |
 
 ## 8. Demo script (3–5 minutes)
@@ -70,12 +70,12 @@ Sentinel Dubai is an early-warning console that fuses population, environmental,
 3. **(1:15) Explain.** Open the Site A alert. Contribution shares and the timeline with baseline band: heat index rose first (exposure memory), then incidents and absence. Open the Jebel Ali district alert: heat-illness clinic visits followed. "Four materially different signals, one story."
 4. **(2:00) Act.** Action card: proportionate action, responsible roles, evidence vs baseline, assumptions, completeness and confidence (the Site A HR outage lowers it visibly). "This goes to the Site HSE Manager, not to HR."
 5. **(2:45) Protect.** Switch role to `employer_hse` (only GBC sites) then `public` (districts, advisories only). Show a "<5" suppressed cell and the boundary banner.
-6. **(3:15) Prove.** Validation page: lead time 5 and 3 days, sensitivity 1.0, PPV 0.8, 1 false alarm, Site B missed. Missing-input table: how lead time and false alarms move without `incidents` or `aqi`. Calibration sweep shows why watch = 4.5.
+6. **(3:15) Prove.** Validation page: lead time 5 and 3 days, sensitivity 1.0, PPV 0.8, 1 false alarm, GBC Site B missed (accepted known limit). Missing-input table: how lead time and false alarms move without `incidents` or `aqi`. Calibration sweep shows why watch = 4.5.
 7. **(3:50) Impact and close.** Impact estimate with its assumptions on screen. "Earlier, explainable, proportionate, private. Built on open tools, ready for real feeds."
 
 ## 9. Success metrics (demo day) and current result
 
-- Both scenarios detected with lead time ≥ 2 days — **current: S1 5 days, S2 3 days.**
+- Both scenarios detected with lead time ≥ 2 days — **current: S1 5 days, S2 3 days.** GBC Site B missed in S2 — **accepted known limit**, surfaced on the Validation page.
 - False alarms ≤ 3 across the window — **current: 1.** PPV ≥ 0.7 — **current: 0.8.**
 - Every alert has action, roles, evidence, assumptions, completeness and confidence — **true by construction.**
 - Role switch changes visible areas within one second; no endpoint ever returns individual records.
@@ -85,7 +85,7 @@ Sentinel Dubai is an early-warning console that fuses population, environmental,
 
 | Risk | Mitigation |
 |---|---|
-| Scenarios too obvious → looks staged | Poisson noise, missing gaps and a feed outage are in the data; false alarm and the missed Site B area are shown honestly. |
+| Scenarios too obvious → looks staged | Poisson noise, missing gaps and a feed outage are in the data; false alarm and the missed GBC Site B area are accepted as a known limit and shown honestly on the Validation page. |
 | Threshold tuned to the demo only | Calibration sweep and five missing-input re-runs on the Validation page; weights and thresholds printed in every alert's assumptions. |
 | Open-Meteo offline during pitch | `/api/live` returns `ok: false`; UI shows "Live feed unavailable" and nothing else breaks. |
 | Judges ask "is it real?" | Say up front: synthetic health/work data, real weather; schema designed for real feeds. |
