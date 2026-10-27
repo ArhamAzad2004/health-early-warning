@@ -1,0 +1,9 @@
+{
+  "name": "sentinel-dubai",
+  "private": true,
+  "scripts": {
+    "setup": "node scripts/dev.mjs setup",
+    "dev": "node scripts/dev.mjs",
+    "test": "node scripts/dev.mjs test"
+  }
+}
