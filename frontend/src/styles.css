@@ -51,7 +51,7 @@ nav { display: flex; gap: 4px; flex: 1; }
 .detail-head { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
 .detail-head p { margin: 4px 0 0; }
 .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
-.action { border-left: 4px solid var(--text); }
+.action { border-color: var(--text); }
 .action-text { font-size: 17px; line-height: 1.45; margin: 0 0 8px; }
 .action ul { margin: 0 0 8px; padding-left: 18px; }
 .bars { display: flex; flex-direction: column; gap: 8px; }

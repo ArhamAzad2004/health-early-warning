@@ -19,18 +19,18 @@ Reference feel: an air-traffic or utility control room, not a marketing dashboar
 ### Overview
 Two-column: left 60 % map, right 40 % stack.
 - Left: Leaflet map (height = viewport − header − banner − slider). Date slider pinned under the map with play/pause and the current date in large type.
-- Right, top to bottom: live environment strip (one row of five small stat tiles), then the alert feed (scrollable list of alert cards).
+- Right, top to bottom: live environment strip (one row of small stat tiles: temperature, humidity, feels like, PM10, PM2.5, US AQI, dust), then the alert feed (scrollable list of alert cards).
 
 ### Alert detail
 Single column, max 960 px.
-1. Header block: area name, level chip with text, dates, peak risk, completeness %, confidence.
-2. Contribution bars (full width).
-3. Multi-signal timeline: one small chart per contributing signal stacked vertically, shared x-axis.
+1. Header block: area name, level chip with text, start–end, peak risk, completeness %, confidence.
+2. Contribution shares (full width).
+3. Multi-signal timeline: one small chart per signal stacked vertically, shared x-axis; the area's risk line with the three threshold lines (4.5 / 6.0 / 7.5) at the bottom.
 4. Action card.
 5. "Back to overview" link top and bottom.
 
 ### Validation
-Single column: four metric tiles in a row → per-scenario table → missing-input comparison table → impact estimate card with assumptions beside the numbers.
+Single column: six metric tiles in a row → per-scenario table → missing-input table (5 rows) → calibration table (7 rows, 4.5 highlighted) → impact card with the assumption sentences beside the numbers.
 
 ### Privacy & governance
 Short single-column text panel with headed sections; no charts.
@@ -39,14 +39,14 @@ Short single-column text panel with headed sections; no charts.
 
 Base: near-white background `#F7F8FA`, surface `#FFFFFF`, text `#1B1F24`, muted text `#5C6470`, borders `#E1E4E8`. One accent for interactive elements: `#2457C5`.
 
-Risk levels use the Okabe–Ito colour-blind-safe set, and every use carries the level word as text:
+Risk levels (the API's `level` values) use the Okabe–Ito colour-blind-safe set, and every use carries the level word as text:
 
 | Level | Colour | Hex | Text label |
 |---|---|---|---|
-| none | grey | `#8C9196` | "No signal" |
-| watch | sky blue | `#56B4E9` | "Watch" |
-| warning | orange | `#E69F00` | "Warning" |
-| alert | vermillion | `#D55E00` | "Alert" |
+| `normal` | grey | `#8C9196` | "Normal" |
+| `watch` (≥ 4.5) | sky blue | `#56B4E9` | "Watch" |
+| `warning` (≥ 6.0) | orange | `#E69F00` | "Warning" |
+| `alert` (≥ 7.5) | vermillion | `#D55E00` | "Alert" |
 
 Rules: never red/green pairs; never encode meaning in colour only; map circles get a 1.5 px dark outline so they read on tiles; signals in charts use distinct line styles (solid / dashed / dotted) as well as colour.
 
@@ -60,24 +60,24 @@ Dark mode is not required for the hackathon.
 
 ## 6. Key components
 
-**Alert card (feed)**: level chip (colour + word) · area name · date range · top two contributors as small bars with percentages · completeness %. Whole card is clickable; focus ring visible.
+**Alert card (feed)**: level chip (colour + word) · area name · start–end · top two contribution shares as small bars with percentages · completeness %. Whole card is clickable; focus ring visible.
 
-**Contribution bars**: horizontal bars sorted by share, label left (signal plain name, e.g. "Incident reports"), percentage right, below each bar the contributing days in small muted text. Missing signals shown as a hollow bar with "no data".
+**Contribution shares**: horizontal bars in the API's order (largest first), label left (signal plain label, e.g. "Heat/exertion incident reports"), percentage right. Signals missing for most of the window get a hollow bar with "limited data".
 
-**Timeline chart**: observed line, baseline band (mean ± 1 std) in light grey fill, alert window shaded in the level colour at 12 % opacity, suppressed points drawn as a small "<5" tick, missing days as gaps (not zero).
+**Timeline chart**: observed line, baseline band (`baseline` ± floor) in light grey fill, alert window shaded in the level colour at 12 % opacity, `suppressed` points drawn as a small "<5" tick, `missing` days as gaps (not zero).
 
-**Action card**: four stacked sections with labels: Action · Responsible role (and "Notify") · Evidence (table: signal, observed, baseline, z) · Assumptions (bulleted). Completeness and confidence repeated at the top right.
+**Action card**: four stacked sections with labels: Action · Roles (responsible first, then notified) · Evidence (table: signal, date, observed, baseline, z, share) · Assumptions (bulleted). Completeness and confidence repeated at the top right. Category chip ("heat" / "respiratory").
 
-**Map circle**: radius 8–28 px scaled by risk; fill = level colour at 70 %; tooltip "Al Quoz — Warning (risk 4.3)".
+**Map circle**: radius 8–28 px scaled by risk; fill = level colour at 70 %; tooltip "Al Quoz — Warning (risk 6.3)"; popup lists missing signals for that day.
 
-**Live strip tile**: label, value, unit, "updated hh:mm"; fallback tile reads "Live feed unavailable".
+**Live strip tile**: label, value, unit, "updated hh:mm" from `time`; when `ok` is false, a single tile reads "Live feed unavailable".
 
 **Role switcher**: segmented control; changing it shows a brief toast "Viewing as Employer HSE — Gulf Build Co. sites only".
 
 ## 7. Accessibility
 
 - Colour contrast ≥ 4.5:1 for text, ≥ 3:1 for chips and chart marks.
-- Every level colour paired with its word; every chart has a text summary line under it ("Incidents peaked at 9 vs baseline 2.1 on 18 Jul").
+- Every level colour paired with its word; every chart has a text summary line under it ("Incident reports peaked at 9 vs baseline 2.1 on 20 Jul").
 - Keyboard: slider operable with arrow keys; cards and circles focusable; visible focus ring.
 - Map has a list fallback (the alert feed and risk table) so nothing is only on the map.
 - `prefers-reduced-motion`: slider autoplay still works but no transitions on circle size.
