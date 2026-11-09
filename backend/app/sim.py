@@ -41,7 +41,9 @@ SCENARIOS = [
          areas=["gbc_site_a", "jebel_ali"]),
     dict(id="S2", short="Dust storm", name="Dust storm respiratory spike (Al Quoz, Al Qusais)",
          start=date(2025, 8, 21), end=date(2025, 9, 6), peak=date(2025, 8, 30),
-         areas=["al_quoz", "al_qusais", "gbc_site_b"]),
+         areas=["al_quoz", "al_qusais", "gbc_site_b"],
+         known_limit="GBC Site B's workplace signals rose together on only one day (31 Aug), "
+                     "not the two consecutive days an alert needs."),
 ]
 
 

@@ -6,7 +6,9 @@ const CHOSEN = 4.5
 
 export default function Validation({ role }) {
   const [b, setB] = useState(null)
+  const [areas, setAreas] = useState([])
   useEffect(() => { api('backtest', { role }).then(setB) }, [role])
+  useEffect(() => { api('areas', { role }).then(setAreas).catch(() => setAreas([])) }, [role])
   if (!b) return <p className="muted">Running back-test…</p>
 
   return (
@@ -30,6 +32,10 @@ export default function Validation({ role }) {
               <td className="mono">{s.lead_time_days ?? '–'} d</td><td>{s.areas_hit.length} of {s.areas_affected.length}</td>
             </tr>))}</tbody>
         </table>
+        <p className="muted small">Lead time is the number of days between the first alert and the worst day; more is better.</p>
+        {b.scenarios.filter(s => s.missed_areas?.length).map(s => (
+          <p key={s.id} className="muted small">Known limit: {s.missed_areas.map(id => areas.find(a => a.id === id)?.name || id).join(', ')} not alerted in the {s.name.toLowerCase()}. {s.known_limit}</p>
+        ))}
       </section>
 
       <div className="detail-grid">
@@ -47,7 +53,7 @@ export default function Validation({ role }) {
         </section>
         <section className="card">
           <h2>When an input goes missing</h2>
-          <p className="muted small">Re-run with one data feed switched off.</p>
+          <p className="muted small">Re-run with one data feed switched off. Compare each row with "All feeds" to see how much that feed matters.</p>
           <table>
             <thead><tr><th>Without</th><th>Detected</th><th>PPV</th><th>False alarms</th><th>Lead</th></tr></thead>
             <tbody>
