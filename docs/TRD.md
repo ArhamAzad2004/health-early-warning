@@ -132,7 +132,7 @@ Current result (seed 42): sensitivity 1.0, area sensitivity 0.8 (GBC Site B not 
 ## 11. Limits (say these out loud)
 
 - Health and workplace data are synthetic; scenario shapes are hand-designed, so metrics prove the method works on the designed cases, not on Dubai.
-- Geolocation is at district/site level only; finer location would change what can be detected and what must be suppressed.
+- Geolocation is at district/site level only; finer location would change what can be detected and what must be suppressed. Location quality is simulated per area and day (`sim.location_reliability`, Al Qusais deliberately poor): each alert reports the share of records with a reliable location, confidence drops one step under 80 %, and the back-test re-runs detection with 25 % of records unplaceable. Detection itself does not change.
 - No causal claims: the system says signals rose together, not that one caused another.
 - Weights and thresholds are assumptions tuned on two scenarios; real deployment needs calibration on historical data.
 - Live weather is real but not used for detection, because the simulated window is in the past.

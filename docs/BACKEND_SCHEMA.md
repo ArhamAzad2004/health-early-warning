@@ -51,7 +51,8 @@ Per signal per day a tuple `(baseline, z, ewma)`: `baseline` rolling mean of pre
 | `contributions` | json | `{signal_id: share}` sorted descending, shares sum to 1 over the window |
 | `evidence` | json[] | `{signal, label, date, value, baseline, z, share}` for signals with share ≥ 0.05 |
 | `completeness` | float 0–1 | 1 − missing cells / (days × signals) |
-| `confidence` | text | `high` ≥ 0.90, `medium` ≥ 0.75, else `low` |
+| `location_reliability` | float 0–1 | mean share of the alert window's health/work records with a reliable location; under 0.8 lowers `confidence` one step |
+| `confidence` | text | from completeness: `high` ≥ 0.90, `medium` ≥ 0.75, else `low`; one step lower when `location_reliability` < 0.8 |
 | `action` | text | from playbook |
 | `roles` | text[] | responsible first, then notified |
 | `category` | text | `heat` or `respiratory` |
