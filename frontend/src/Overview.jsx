@@ -58,7 +58,9 @@ export default function Overview({ role, date, setDate, onOpen }) {
           <Legend />
         </div>
         <MapContainer center={[25.15, 55.25]} zoom={10} scrollWheelZoom={false} className="map">
-          <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          {/* OSM's tile policy: use tile.openstreetmap.org (no a/b/c subdomains) and send a Referer */}
+          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} />
           {areas.map(a => {
             const r = riskBy[a.id]
             const lv = LEVELS[r?.level || 'normal']
