@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import time
 import urllib.request
@@ -6,6 +7,7 @@ from datetime import date
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import engine
@@ -13,9 +15,32 @@ from .sim import AREAS, DATES, SCENARIOS, SIGNALS, generate
 
 app = FastAPI(title="Sentinel Dubai – health early warning")
 
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
+    "Strict-Transport-Security": "max-age=31536000",
+}
+
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    # shortcut: no Content-Security-Policy yet; Google Fonts, map tiles and Vite's inline styles need an allow-list
+    try:
+        response = await call_next(request)
+    except Exception:  # crashes would otherwise skip this middleware and leak no headers but also no safe body
+        logging.exception("Unhandled error on %s", request.url.path)
+        response = JSONResponse({"detail": "Internal server error"}, status_code=500)
+    response.headers.update(SECURITY_HEADERS)
+    return response
+
 DATA = generate()
 SCORES, ALERTS = engine.run(DATA)
 BACKTEST = engine.backtest(DATA, ALERTS)
+BACKTEST_SITES = engine.backtest(DATA, ALERTS, scope=lambda a: AREAS[a]["type"] == "site")  # employer role
+for _s in BACKTEST_SITES["scenarios"]:  # full scenario names mention districts the employer role cannot see
+    _s["name"] = next(sc["short"] for sc in SCENARIOS if sc["id"] == _s["id"])
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
 LIVE_CACHE = []  # [fetched_at, result]; protects the free Open-Meteo quota once the demo is public
@@ -33,6 +58,20 @@ def suppress(signal, v):
     if v is not None and SIGNALS[signal]["count"] and 0 < v < 5:
         return None, True
     return v, False
+
+
+def published(signal, values):
+    """A series as users see it: suppressed and missing days are unknown."""
+    return [None if v is None or suppress(signal, v)[1] else v for v in values]
+
+
+# Derived numbers are recomputed from published values only, so no combination of numbers on
+# screen can reveal a hidden count: baselines and z-scores for every role; risk, peak risk and
+# contributions for the employer and public roles. The public health authority legitimately holds
+# the full data, so it keeps full-fidelity risk. Detection and alerts always use the full data.
+PUBLIC = {a: engine.score_area({s: published(s, v) for s, v in sc["series"].items()}) for a, sc in SCORES.items()}
+PUBLIC_Z = {a: zs for a, (zs, _) in PUBLIC.items()}
+PUBLIC_DAYS = {a: days for a, (_, days) in PUBLIC.items()}
 
 
 @app.get("/api/meta")
@@ -59,12 +98,13 @@ def signals(area_id: str, role: str = Role):
         rows = []
         for i, v in enumerate(values):
             val, sup = suppress(s, v)
-            mean, z, _ = sc["zs"][s][i]
-            if sup:  # baseline + z would let anyone rebuild the hidden count
+            mean, z, _ = PUBLIC_Z[area_id][s][i]
+            if sup:
                 mean = z = None
             rows.append(dict(date=DATES[i].isoformat(), value=val, suppressed=sup, missing=v is None, baseline=mean, z=z))
         out[s] = rows
-    risk = [dict(date=DATES[i].isoformat(), risk=d["risk"], level=engine.level(d["risk"])) for i, d in enumerate(sc["days"])]
+    days = sc["days"] if role == "public_health" else PUBLIC_DAYS[area_id]
+    risk = [dict(date=DATES[i].isoformat(), risk=d["risk"], level=engine.level(d["risk"])) for i, d in enumerate(days)]
     return dict(area_id=area_id, signals=out, risk=risk)
 
 
@@ -77,21 +117,37 @@ def risk(date: str, role: str = Role):
     for a in AREAS:
         if not visible(role, a):
             continue
-        d = SCORES[a]["days"][i]
-        out.append(dict(area_id=a, risk=d["risk"], level=engine.level(d["risk"]), missing=d["missing"]))
+        r = (SCORES[a]["days"] if role == "public_health" else PUBLIC_DAYS[a])[i]["risk"]
+        out.append(dict(area_id=a, risk=r, level=engine.level(r), missing=SCORES[a]["days"][i]["missing"]))
     return out
 
 
-def hide_small(e):
-    """Evidence row with a 1-4 count blanked, along with the baseline and z that would reveal it."""
+def hide_small(area_id, e):
+    """Evidence row as users may see it: 1-4 counts blanked, baseline and z from published values only."""
     val, sup = suppress(e["signal"], e["value"])
-    return dict(e, value=val, baseline=None, z=None) if sup else e
+    if sup:
+        return dict(e, value=None, baseline=None, z=None)
+    mean, z, _ = PUBLIC_Z[area_id][e["signal"]][DATE_INDEX[e["date"]]]
+    return dict(e, baseline=mean, z=z)
+
+
+def public_alert(al):
+    """An alert as users see it: peak risk and contributions recomputed from published values."""
+    days = PUBLIC_DAYS[al["area_id"]][DATE_INDEX[al["start"]]:DATE_INDEX[al["end"]] + 1]
+    totals = {s: sum(d["contrib"][s] for d in days) for s in days[0]["contrib"]}
+    total = sum(totals.values()) or 1
+    shares = {s: round(v / total, 3) for s, v in sorted(totals.items(), key=lambda kv: -kv[1])}
+    return dict(al, peak_risk=max(d["risk"] for d in days), contributions=shares,
+                evidence=[dict(hide_small(al["area_id"], e), share=shares[e["signal"]]) for e in al["evidence"]])
+
+
+PUBLIC_ALERTS = [public_alert(al) for al in ALERTS]
+AUTHORITY_ALERTS = [dict(al, evidence=[hide_small(al["area_id"], e) for e in al["evidence"]]) for al in ALERTS]
 
 
 @app.get("/api/alerts")
 def alerts(role: str = Role):
-    out = [dict(al, evidence=[hide_small(e) for e in al["evidence"]])
-           for al in ALERTS if visible(role, al["area_id"])]
+    out = [al for al in (AUTHORITY_ALERTS if role == "public_health" else PUBLIC_ALERTS) if visible(role, al["area_id"])]
     if role == "public":  # the public sees advisories, not the underlying health counts
         out = [{k: v for k, v in al.items() if k in ("id", "area_id", "area", "start", "end", "level", "action", "category")} for al in out]
     return out
@@ -101,7 +157,7 @@ def alerts(role: str = Role):
 def backtest(role: str = Role):
     if role == "public":
         raise HTTPException(403, "Validation detail is for public health and employer roles")
-    return BACKTEST
+    return BACKTEST_SITES if role == "employer_hse" else BACKTEST
 
 
 @app.get("/api/live")

@@ -82,8 +82,10 @@ Each alert also carries `category` (`heat` or `respiratory`) and five `assumptio
 ## 6. Privacy design
 
 - All data is daily aggregate values per area. No person-level record exists anywhere.
-- Small-cell suppression (`main.suppress`): any count signal with value 1–4 is returned as `value: null, suppressed: true`; 0 stays 0; environmental values are never suppressed. On suppressed cells the baseline and z are blanked too, because together they would let anyone recalculate the hidden count. The same rule is applied to each alert's `evidence` rows. A test checks that no suppressed cell carries a baseline or z.
+- Small-cell suppression (`main.suppress`): any count signal with value 1–4 is returned as `value: null, suppressed: true`; 0 stays 0; environmental values are never suppressed. On suppressed cells the baseline and z are blanked too. Every baseline and z shown to users (charts and alert evidence) is computed only from published values, never from the hidden ones, so no combination of them (for example differencing neighbouring 28-day means) can reveal a hidden count. For the employer and public roles the daily risk, alert peak risk and contribution shares are recomputed from published values too; the public health authority, which legitimately holds the full data, keeps full-fidelity risk. Detection and alerts always use the full data, so an alert's existence, dates and level reflect the full data by design (they are the system's decision); the numbers explaining it are what get recomputed. Tests recompute the shown numbers from the shown values and check they match.
 - Role scope is enforced in the API: `public_health` → all areas; `employer_hse` → sites only; `public` → districts only. Out-of-scope `area_id` → 404. Invalid role → 422.
+- `employer_hse` gets back-test metrics computed only from its own sites' alerts and scenario areas.
+- Every response carries security headers (nosniff, frame-deny, no-referrer, permissions-policy, HSTS), including error responses; unhandled errors return a generic 500 without internal details.
 - `public` additionally gets only `heat_index` and `aqi` in `/api/signals`, only `id, area_id, area, start, end, level, action, category` in `/api/alerts`, and 403 on `/api/backtest`.
 - Boundary banner on every page: "Aggregated surveillance data. Not for individual employment or disciplinary use."
 

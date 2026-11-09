@@ -166,11 +166,11 @@ def run(data, exclude=(), watch=WATCH):
     return scores, alerts
 
 
-def _metrics(alerts):
+def _metrics(alerts, scenarios=SCENARIOS):
     def hits(al, sc):
         return al["area_id"] in sc["areas"] and al["start"] <= sc["end"].isoformat() and al["end"] >= sc["start"].isoformat()
     per = []
-    for sc in SCENARIOS:
+    for sc in scenarios:
         tp = [al for al in alerts if hits(al, sc)]
         first = min((al["start"] for al in tp), default=None)
         lead = (sc["peak"] - DATES[DATE_ISO.index(first)]).days if first else None
@@ -178,8 +178,8 @@ def _metrics(alerts):
         per.append(dict(id=sc["id"], name=sc["name"], peak=sc["peak"].isoformat(), detected=bool(tp),
                         first_alert=first, lead_time_days=lead, areas_hit=hit, areas_affected=sc["areas"],
                         missed_areas=sorted(set(sc["areas"]) - set(hit)), known_limit=sc.get("known_limit")))
-    true_alerts = [al for al in alerts if any(hits(al, sc) for sc in SCENARIOS)]
-    pairs = sum(len(sc["areas"]) for sc in SCENARIOS)
+    true_alerts = [al for al in alerts if any(hits(al, sc) for sc in scenarios)]
+    pairs = sum(len(sc["areas"]) for sc in scenarios)
     leads = [p["lead_time_days"] for p in per if p["lead_time_days"] is not None]
     return dict(
         scenarios=per,
@@ -191,21 +191,28 @@ def _metrics(alerts):
         mean_lead_time_days=round(statistics.fmean(leads), 1) if leads else None)
 
 
-def backtest(data, alerts):
-    base = _metrics(alerts)
+def backtest(data, alerts, scope=lambda area_id: True):
+    """Back-test metrics; `scope` limits them to the areas one role may see."""
+    scenarios = [dict(sc, areas=[a for a in sc["areas"] if scope(a)]) for sc in SCENARIOS]
+    scenarios = [sc for sc in scenarios if sc["areas"]]
+
+    def metrics(als):
+        return _metrics([al for al in als if scope(al["area_id"])], scenarios)
+
+    base = metrics(alerts)
     base["data_latency_days"] = {s: SIGNALS[s]["latency"] for s in SIGNALS}
     base["median_latency_days"] = statistics.median(SIGNALS[s]["latency"] for s in SIGNALS)
     base["missing_input"] = []
     for s in ("incidents", "absence", "aqi", "heat_index", "lab_resp_pos"):
-        m = _metrics(run(data, exclude=(s,))[1])
+        m = metrics(run(data, exclude=(s,))[1])
         base["missing_input"].append(dict(without=s, label=SIGNALS[s]["label"], **{
             k: m[k] for k in ("sensitivity", "area_sensitivity", "ppv", "false_alarms", "mean_lead_time_days")}))
     base["calibration"] = [dict(threshold=t, **{k: m[k] for k in ("sensitivity", "ppv", "false_alarms", "mean_lead_time_days")})
-                           for t in (3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0) for m in [_metrics(run(data, watch=t)[1])]]
+                           for t in (3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0) for m in [metrics(run(data, watch=t)[1])]]
     # Impact: clearly labelled assumptions, not a claim.
     eff, sev_share = 0.3, 0.1
     excess = {"absence": 0.0, "incidents": 0.0}
-    for sc, p in zip(SCENARIOS, base["scenarios"]):
+    for sc, p in zip(scenarios, base["scenarios"]):
         if not p["first_alert"]:
             continue
         i0, i1 = DATE_ISO.index(p["first_alert"]), DATE_ISO.index(sc["end"].isoformat())
