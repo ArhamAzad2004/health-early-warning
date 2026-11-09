@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, fmtDate } from './api.js'
+import { downloadCsv, summaryCsv } from './exportSummary.js'
 
 const pct = v => (v == null ? '–' : `${Math.round(v * 100)}%`)
 const CHOSEN = 4.5
@@ -7,17 +8,25 @@ const CHOSEN = 4.5
 export default function Validation({ role }) {
   const [b, setB] = useState(null)
   const [areas, setAreas] = useState([])
+  const [alerts, setAlerts] = useState([])
   useEffect(() => {
     let current = true  // ignore late answers for a previous role
     api('backtest', { role }).then(d => current && setB(d))
     api('areas', { role }).then(d => current && setAreas(d)).catch(() => current && setAreas([]))
+    api('alerts', { role }).then(d => current && setAlerts(d)).catch(() => current && setAlerts([]))
     return () => { current = false }
   }, [role])
   if (!b) return <p className="muted">Running back-test…</p>
 
   return (
     <div className="validation">
-      <p className="muted">Replayed 1 May – 30 Sep 2025 day by day, using each signal only once it would have been reported. Two outbreaks were injected as ground truth.</p>
+      <div className="validation-head">
+        <p className="muted">Replayed 1 May – 30 Sep 2025 day by day, using each signal only once it would have been reported. Two outbreaks were injected as ground truth.</p>
+        <div className="export no-print">
+          <button className="btn" onClick={() => downloadCsv(summaryCsv(b, alerts), 'sentinel-summary-2025-05-01_2025-09-30.csv')}>Download CSV</button>
+          <button className="btn" onClick={() => window.print()}>Print summary</button>
+        </div>
+      </div>
       <div className="tiles">
         <Tile label="Outbreaks detected" value={pct(b.sensitivity)} note={`${pct(b.area_sensitivity)} of affected areas`} />
         <Tile label="Mean lead time" value={`${b.mean_lead_time_days} days`} note="first alert → harm peak" />
