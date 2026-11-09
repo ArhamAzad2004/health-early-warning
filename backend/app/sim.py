@@ -124,3 +124,15 @@ def generate(seed=SEED):
     for i in range(out, out + 3):
         data["gbc_site_a"]["absence"][i] = None  # HR feed outage during the heat cluster
     return data
+
+
+def location_reliability(seed=SEED):
+    """Per area, count signal and day: share of records whose location is reliable enough to
+    place them in that area. Uses its own random stream so generate() output is unchanged."""
+    rng = random.Random(seed + 1)
+    out = {}
+    for a, info in AREAS.items():
+        centre = 0.68 if a == "al_qusais" else 0.92  # older addressing: many records only geocode to the emirate
+        out[a] = {s: [round(min(1.0, max(0.0, rng.gauss(centre, 0.04))), 2) for _ in DATES]
+                  for s, m in SIGNALS.items() if m["count"] and m["level"] == info["type"]}
+    return out

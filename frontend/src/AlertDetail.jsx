@@ -39,7 +39,9 @@ export default function AlertDetail({ role, alert, onBack }) {
             <ul>{alert.roles.map(r => <li key={r}>{r}</li>)}</ul>
           </>}
           {alert.completeness != null && (
-            <p className="small">Data completeness <strong>{Math.round(alert.completeness * 100)}%</strong> · confidence <strong>{alert.confidence}</strong></p>
+            <p className="small">Data completeness <strong>{Math.round(alert.completeness * 100)}%</strong>
+              {alert.location_reliability != null && <> · location known for <strong>{Math.round(alert.location_reliability * 100)}%</strong> of records</>}
+              {' '}· confidence <strong>{alert.confidence}</strong></p>
           )}
         </section>
 

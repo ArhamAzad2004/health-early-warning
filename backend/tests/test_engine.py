@@ -61,3 +61,17 @@ def test_suppressed_cells_reveal_nothing():
             assert all(r["baseline"] is None and r["z"] is None for r in rows if r["suppressed"])
     for al in client.get("/api/alerts").json():
         assert all(e["baseline"] is None and e["z"] is None for e in al["evidence"] if e["value"] is None)
+
+
+def test_location_reliability_lowers_confidence_only():
+    from app.main import ALERTS
+    for al in ALERTS:
+        assert 0 <= al["location_reliability"] <= 1
+    qusais = next(al for al in ALERTS if al["area_id"] == "al_qusais")
+    assert qusais["location_reliability"] < 0.8 and qusais["completeness"] >= 0.9
+    assert qusais["confidence"] == "medium"  # would be "high" on completeness alone
+
+
+def test_unknown_location_stress_row():
+    row = next(m for m in BACKTEST["missing_input"] if m["without"] == "unknown_location")
+    assert row["sensitivity"] == 1.0 and row["mean_lead_time_days"] is not None
