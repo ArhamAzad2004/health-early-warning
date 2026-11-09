@@ -1,5 +1,5 @@
 # Build the dashboard, then run it and the API as one app.
-FROM node:22-slim AS web
+FROM node:26-slim AS web
 WORKDIR /web
 COPY frontend/package*.json ./
 RUN npm ci
