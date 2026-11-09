@@ -26,6 +26,7 @@ if (mode === 'setup') {
   process.exit(1)
 } else if (mode === 'test') {
   step('Backend tests', venvPython, ['-m', 'pytest', '-q'], 'backend')
+  step('Dashboard tests', 'npm', ['test'], 'frontend')
 } else {
   const procs = [
     spawn(venvPython, ['-m', 'uvicorn', 'app.main:app', '--port', '8000', '--app-dir', 'backend'], opts(venvPython)),
