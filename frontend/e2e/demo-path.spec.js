@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
 
 test('first visit starts the guided tour once', async ({ page }) => {
@@ -56,5 +57,14 @@ test.describe('after the tour', () => {
     await expect(page.getByRole('alert')).toContainText("couldn't be loaded")
     await page.getByRole('button', { name: 'Back to overview' }).click()
     await expect(page.getByRole('heading', { name: /Risk on/ })).toBeVisible()
+  })
+
+  test('Download CSV saves the summary for the current role', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Validation', exact: true }).click()
+    const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download CSV' }).click()])
+    expect(file.suggestedFilename()).toBe('sentinel-summary-2025-05-01_2025-09-30.csv')
+    const text = readFileSync(await file.path(), 'utf8')
+    expect(text).toContain('GBC Site A')
   })
 })
