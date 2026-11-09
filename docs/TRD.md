@@ -136,6 +136,7 @@ Current result (seed 42): sensitivity 1.0, area sensitivity 0.8 (GBC Site B not 
 - No causal claims: the system says signals rose together, not that one caused another.
 - Weights and thresholds are assumptions tuned on two scenarios; real deployment needs calibration on historical data.
 - Live weather is real but not used for detection, because the simulated window is in the past.
+- Alerts are decided on the full data and their level and advice are shared with every role as issued. For the employer and public views, risk numbers are recomputed from published values and no peak risk is shown, but a determined user who compares an alert's level with the published risk (and the public thresholds) can tell that suppressed 1-4 counts contributed. That reveals no count beyond what the `<5` markers already show; it is the accepted cost of sharing official advice unchanged.
 
 **Known behaviours (accepted, not tuned away):**
 - GBC Site B is not alerted in S2: its signals corroborated on 31 Aug only, never on two consecutive days. Reported as `missed_areas` and `known_limit` in the back-test and on the Validation page.

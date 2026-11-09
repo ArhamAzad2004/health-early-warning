@@ -51,7 +51,7 @@ SCORES, ALERTS = engine.run(DATA)
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
 LIVE_CACHE = []  # [fetched_at, result, ttl]; protects the free Open-Meteo quota once the demo is public
-LIVE_LOCK = threading.Lock()  # one upstream refresh at a time, so a burst can't tie up the worker threads
+LIVE_LOCK = threading.Lock()  # one upstream refresh at a time; others get the last answer, so a burst can't tie up threads
 Role = Query("public_health", pattern="^(public_health|employer_hse|public)$")
 ENV = {"heat_index", "aqi"}
 
@@ -201,12 +201,16 @@ def backtest(role: str = Role):
 @app.get("/api/live")
 def live():
     """Current Dubai weather and air quality from Open-Meteo (free, no key), cached for 10 minutes."""
-    with LIVE_LOCK:
-        if LIVE_CACHE and time.monotonic() - LIVE_CACHE[0] < LIVE_CACHE[2]:
-            return LIVE_CACHE[1]
+    if LIVE_CACHE and time.monotonic() - LIVE_CACHE[0] < LIVE_CACHE[2]:
+        return LIVE_CACHE[1]
+    if not LIVE_LOCK.acquire(blocking=False):  # another request is refreshing: answer now instead of queueing
+        return LIVE_CACHE[1] if LIVE_CACHE else dict(ok=False, error="unavailable", fetched=date.today().isoformat())
+    try:
         result, ttl = _fetch_live()
         LIVE_CACHE[:] = [time.monotonic(), result, ttl]
         return result
+    finally:
+        LIVE_LOCK.release()
 
 
 def _fetch_live():
@@ -220,12 +224,12 @@ def _fetch_live():
     }
     try:
         got = {k: json.load(urllib.request.urlopen(u, timeout=6))["current"] for k, u in urls.items()}
+        w, a = got["weather"], got["air"]
+        result = dict(ok=True, time=w["time"], temperature=w["temperature_2m"], humidity=w["relative_humidity_2m"],
+                      feels_like=w["apparent_temperature"], pm10=a.get("pm10"), pm2_5=a.get("pm2_5"),
+                      us_aqi=a.get("us_aqi"), dust=a.get("dust"), source="Open-Meteo")
     except Exception:  # noqa: BLE001 - any upstream failure (offline, timeout, bad JSON) falls back; the demo must still work
         return dict(ok=False, error="unavailable", fetched=date.today().isoformat()), 60
-    w, a = got["weather"], got["air"]
-    result = dict(ok=True, time=w["time"], temperature=w["temperature_2m"], humidity=w["relative_humidity_2m"],
-                feels_like=w["apparent_temperature"], pm10=a.get("pm10"), pm2_5=a.get("pm2_5"),
-                us_aqi=a.get("us_aqi"), dust=a.get("dust"), source="Open-Meteo")
     return result, 600
 
 
