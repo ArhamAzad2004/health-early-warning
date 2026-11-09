@@ -1,0 +1,5 @@
+line-length = 130
+
+[lint]
+# dict(...) calls are this codebase's style for building API responses.
+ignore = ["C408"]

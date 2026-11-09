@@ -18,7 +18,7 @@ const mode = process.argv[2]
 
 if (mode === 'setup') {
   if (!existsSync(venvPython)) step('Create Python environment', win ? 'python' : 'python3', ['-m', 'venv', 'backend/.venv'])
-  step('Install backend packages', venvPython, ['-m', 'pip', 'install', '-q', '-r', 'backend/requirements.txt'])
+  step('Install backend packages', venvPython, ['-m', 'pip', 'install', '-q', '-r', 'backend/requirements-dev.txt'])
   step('Install dashboard packages', 'npm', ['ci'], 'frontend')
   console.log('\nReady. Run: npm run dev')
 } else if (!existsSync(venvPython) || !existsSync('frontend/node_modules')) {

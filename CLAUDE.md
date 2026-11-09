@@ -10,7 +10,7 @@ Prototype that fuses simulated Dubai health, workforce and environmental signals
 
 ## Run
 - From the repo root: `npm run setup` once, then `npm run dev` → dashboard http://localhost:5173, API http://localhost:8000 (Vite proxies `/api`).
-- Tests: `npm test` — must pass before committing. CI also builds the dashboard and the Docker image.
+- Tests: `npm test` — must pass before committing. Lint: `backend/.venv/Scripts/python -m ruff check backend`. Browser test: start the app, then `npm run e2e` in `frontend/`. CI runs all of these plus the Docker image.
 - One-app mode (as deployed): `npm run build` in `frontend/`, then the backend alone serves everything on port 8000.
 - `main` is protected: changes go through a pull request with green checks.
 - Windows machine: PowerShell and Git Bash both available.

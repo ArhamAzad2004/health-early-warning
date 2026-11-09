@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from . import engine
 from .sim import AREAS, DATES, SCENARIOS, SIGNALS, generate
 
+log = logging.getLogger("uvicorn.error")
 app = FastAPI(title="Sentinel Dubai – health early warning")
 
 SECURITY_HEADERS = {
@@ -29,8 +30,8 @@ async def security_headers(request, call_next):
     # shortcut: no Content-Security-Policy yet; Google Fonts, map tiles and Vite's inline styles need an allow-list
     try:
         response = await call_next(request)
-    except Exception:  # crashes would otherwise skip this middleware and leak no headers but also no safe body
-        logging.exception("Unhandled error on %s", request.url.path)
+    except Exception:  # a crash must still get the headers and a generic body, never a traceback
+        log.exception("Unhandled error on %s", request.url.path)
         response = JSONResponse({"detail": "Internal server error"}, status_code=500)
     response.headers.update(SECURITY_HEADERS)
     return response
@@ -44,7 +45,7 @@ for _s in BACKTEST_SITES["scenarios"]:  # full scenario names mention districts 
     _s["name"] = next(sc["short"] for sc in SCENARIOS if sc["id"] == _s["id"])
 STARTUP_SECONDS = round(time.monotonic() - _started, 1)
 BUILD = os.environ.get("RENDER_GIT_COMMIT", "dev")[:7]  # logged only: a public build id would tell attackers which fixes are live
-logging.getLogger("uvicorn.error").info("Generated %d areas, %d alerts and the back-test in %.1f s (build %s)",
+log.info("Generated %d areas, %d alerts and the back-test in %.1f s (build %s)",
                                         len(AREAS), len(ALERTS), STARTUP_SECONDS, BUILD)
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
@@ -129,7 +130,7 @@ def risk(date: str, role: str = Role):
 
 def hide_small(area_id, e):
     """Evidence row as users may see it: 1-4 counts blanked, baseline and z from published values only."""
-    val, sup = suppress(e["signal"], e["value"])
+    _, sup = suppress(e["signal"], e["value"])
     if sup:
         return dict(e, value=None, baseline=None, z=None)
     mean, z, _ = PUBLIC_Z[area_id][e["signal"]][DATE_INDEX[e["date"]]]
@@ -196,7 +197,7 @@ def live():
     }
     try:
         got = {k: json.load(urllib.request.urlopen(u, timeout=6))["current"] for k, u in urls.items()}
-    except Exception:  # offline demo must still work
+    except Exception:  # noqa: BLE001 - any upstream failure (offline, timeout, bad JSON) falls back; the demo must still work
         return dict(ok=False, error="unavailable", fetched=date.today().isoformat())
     w, a = got["weather"], got["air"]
     result = dict(ok=True, time=w["time"], temperature=w["temperature_2m"], humidity=w["relative_humidity_2m"],
