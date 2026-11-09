@@ -13,7 +13,7 @@ export default function Overview({ role, date, setDate, onOpen }) {
   const [playing, setPlaying] = useState(false)
   const timer = useRef()
 
-  useEffect(() => { api('meta').then(setMeta).catch(() => setFailed(true)) }, [attempt])
+  useEffect(() => { api('meta', { role }).then(setMeta).catch(() => setFailed(true)) }, [role, attempt])  // jump days depend on the role
   useEffect(() => {
     let current = true  // ignore late answers for a role the user has already switched away from
     setAreas([]); setAlerts(null); setRisk([]); setNotes([]); setFailed(false)
