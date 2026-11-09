@@ -39,7 +39,7 @@ def responses(role):
            get("/api/risk", date="2025-07-23", role=role).json(), get("/api/alerts", role=role).json()]
     out += [get("/api/signals", area_id=a, role=role).json() for a in visible_areas(role)]
     if role != "public":
-        out.append(get("/api/backtest", role=role).json())
+        out += [get("/api/backtest", role=role).json(), get("/api/notifications", role=role).json()]
     return out
 
 

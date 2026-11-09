@@ -79,6 +79,8 @@ Why this and not a model: it is explainable line by line, has no training set to
 
 Each alert also carries `category` (`heat` or `respiratory`) and five `assumptions` strings (window, cap, alpha; weights; opening rule; latency respected; missing data and synthetic data).
 
+**Notifications.** When an alert opens, each responsible role in its playbook entry gets a notification dated that day (`/api/notifications`). The Overview lists what had been sent up to the replay date, and the alert page shows when each role was notified. Messages are built from alert metadata only (area, dates, level, action), never from counts. In a real deployment this is where email/Teams delivery would plug in; the demo keeps them in the app.
+
 ## 6. Privacy design
 
 - All data is daily aggregate values per area. No person-level record exists anywhere.
