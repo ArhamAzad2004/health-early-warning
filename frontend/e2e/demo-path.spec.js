@@ -47,4 +47,14 @@ test.describe('after the tour', () => {
     await page.getByRole('button', { name: /Dust storm/ }).click()
     await expect(page.locator('.feed')).not.toContainText('GBC Site')
   })
+
+  test('a failed alert download shows a way out instead of a blank page', async ({ page }) => {
+    await page.route(/AlertDetail-.*\.js$/, route => route.abort())
+    await page.goto('/')
+    await page.getByRole('button', { name: /Heat cluster/ }).click()
+    await page.locator('.alert-row', { hasText: 'GBC Site A' }).click()
+    await expect(page.getByRole('alert')).toContainText("couldn't be loaded")
+    await page.getByRole('button', { name: 'Back to overview' }).click()
+    await expect(page.getByRole('heading', { name: /Risk on/ })).toBeVisible()
+  })
 })

@@ -31,7 +31,7 @@ export default function Tour({ role, onClose }) {
     if (!el) { close.current(); return }  // target gone (e.g. the user changed tab): end the tour
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches
     el.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' })
-    const place = () => setBox(el.getBoundingClientRect())
+    const place = () => (el.isConnected ? setBox(el.getBoundingClientRect()) : close.current())
     place()
     addEventListener('resize', place)
     addEventListener('scroll', place, true)

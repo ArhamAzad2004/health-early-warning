@@ -4,19 +4,29 @@ import { downloadCsv, summaryCsv } from './exportSummary.js'
 
 const pct = v => (v == null ? '–' : `${Math.round(v * 100)}%`)
 const CHOSEN = 4.5
+const small = v => v ?? '<5'  // the server hides impact totals that would be a 1-4 count
 
 export default function Validation({ role, roleName }) {
   const [b, setB] = useState(null)
   const [areas, setAreas] = useState([])
-  const [alerts, setAlerts] = useState([])
+  const [alerts, setAlerts] = useState(null)  // null = not loaded: export stays off
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let current = true  // ignore late answers for a previous role
-    setB(null); setAlerts([])  // never export one role's back-test with another role's alerts
-    api('backtest', { role }).then(d => current && setB(d)).catch(() => {})
+    setB(null); setAlerts(null); setFailed(false)  // never export one role's back-test with another role's alerts
+    const fail = () => current && setFailed(true)
+    api('backtest', { role }).then(d => current && setB(d)).catch(fail)
     api('areas', { role }).then(d => current && setAreas(d)).catch(() => current && setAreas([]))
-    api('alerts', { role }).then(d => current && setAlerts(d)).catch(() => current && setAlerts([]))
+    api('alerts', { role }).then(d => current && setAlerts(d)).catch(fail)
     return () => { current = false }
-  }, [role])
+  }, [role, attempt])
+  if (failed) return (
+    <div className="down" role="alert">
+      <p>Couldn't load the back-test. The server may be waking up, which can take up to a minute.</p>
+      <button className="btn" onClick={() => setAttempt(n => n + 1)}>Try again</button>
+    </div>
+  )
   if (!b) return <p className="muted">Running back-test…</p>
 
   return (
@@ -24,7 +34,7 @@ export default function Validation({ role, roleName }) {
       <div className="validation-head">
         <p className="muted">Replayed 1 May – 30 Sep 2025 day by day, using each signal only once it would have been reported. Two outbreaks were injected as ground truth.</p>
         <div className="export no-print">
-          <button className="btn" onClick={() => downloadCsv(summaryCsv(b, alerts, roleName), 'sentinel-summary-2025-05-01_2025-09-30.csv')}>Download CSV</button>
+          <button className="btn" disabled={!alerts} onClick={() => downloadCsv(summaryCsv(b, alerts, roleName), 'sentinel-summary-2025-05-01_2025-09-30.csv')}>Download CSV</button>
           <button className="btn" onClick={() => window.print()}>Print summary</button>
         </div>
       </div>
@@ -32,8 +42,8 @@ export default function Validation({ role, roleName }) {
         <Tile label="Outbreaks detected" value={pct(b.sensitivity)} note={`${pct(b.area_sensitivity)} of affected areas`} />
         <Tile label="Mean lead time" value={`${b.mean_lead_time_days} days`} note="first alert → harm peak" />
         <Tile label="Precision (PPV)" value={pct(b.ppv)} note={`${b.total_alerts} alerts in 5 months`} />
-        <Tile label="False alarms" value={b.false_alarms} note="across 11 areas" />
-        <Tile label="Median data latency" value={`${b.median_latency_days} day`} note="per signal: see below" />
+        <Tile label="False alarms" value={b.false_alarms} note={`across ${areas.length || '–'} areas`} />
+        <Tile label="Median data latency" value={`${b.median_latency_days} day${b.median_latency_days === 1 ? '' : 's'}`} note="per signal: see below" />
       </div>
 
       <section className="card">
@@ -44,7 +54,7 @@ export default function Validation({ role, roleName }) {
           <tbody>{b.scenarios.map(s => (
             <tr key={s.id}>
               <td>{s.name}</td><td>{s.first_alert ? fmtDate(s.first_alert) : 'missed'}</td><td>{fmtDate(s.peak)}</td>
-              <td className="mono">{s.lead_time_days ?? '–'} d</td><td>{s.areas_hit.length} of {s.areas_affected.length}</td>
+              <td className="mono">{s.lead_time_days == null ? '–' : `${s.lead_time_days} d`}</td><td>{s.areas_hit.length} of {s.areas_affected.length}</td>
             </tr>))}</tbody>
         </table>
         <p className="muted small">Lead time is the number of days between the first alert and the worst day; more is better.</p>
@@ -86,9 +96,9 @@ export default function Validation({ role, roleName }) {
       <section className="card">
         <h2>Estimated impact at Gulf Build Co.</h2>
         <div className="tiles">
-          <Tile label="Lost workdays avoided" value={b.impact.avoided_lost_workdays} note={`of ${b.impact.excess_absence_days} excess absence days`} />
-          <Tile label="Incidents avoided" value={b.impact.avoided_incidents} note={`of ${b.impact.excess_incidents} excess incidents`} />
-          <Tile label="High-severity avoided" value={b.impact.avoided_high_severity_incidents} note="estimate" />
+          <Tile label="Lost workdays avoided" value={small(b.impact.avoided_lost_workdays)} note={`of ${small(b.impact.excess_absence_days)} excess absence days`} />
+          <Tile label="Incidents avoided" value={small(b.impact.avoided_incidents)} note={`of ${small(b.impact.excess_incidents)} excess incidents`} />
+          <Tile label="High-severity avoided" value={small(b.impact.avoided_high_severity_incidents)} note="estimate" />
         </div>
         <ul className="small muted">{b.impact.assumptions.map(a => <li key={a}>{a}</li>)}</ul>
       </section>

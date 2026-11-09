@@ -19,8 +19,8 @@ export function summaryCsv(b, alerts, scope) {
     ['Outbreaks detected', b.sensitivity], ['Affected areas flagged', b.area_sensitivity],
     ['Precision (PPV)', b.ppv], ['False alarms', b.false_alarms], ['Total alerts', b.total_alerts],
     ['Mean lead time (days)', b.mean_lead_time_days], ['Median data latency (days)', b.median_latency_days],
-    ['Lost workdays avoided (estimate)', b.impact.avoided_lost_workdays],
-    ['Incidents avoided (estimate)', b.impact.avoided_incidents],
+    ['Lost workdays avoided (estimate)', b.impact.avoided_lost_workdays ?? '<5'],
+    ['Incidents avoided (estimate)', b.impact.avoided_incidents ?? '<5'],
     ...b.impact.assumptions.map(a => ['Assumption', a]),
     [],
     ['Scenario', 'First alert', 'Harm peak', 'Lead time (days)', 'Known limit'],
@@ -35,5 +35,5 @@ export function downloadCsv(text, filename) {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }))
   const link = Object.assign(document.createElement('a'), { href: url, download: filename })
   link.click()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)  // revoking at once can cancel the download in some browsers
 }
