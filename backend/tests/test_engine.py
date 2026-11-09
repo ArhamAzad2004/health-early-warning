@@ -94,3 +94,14 @@ def test_jump_days_show_each_outbreak_at_alert_level():
             assert top(sc["focus"]) >= top(sc["peak"]), (role, sc)
     public = {s["id"]: s["focus"] for s in c.get("/api/meta", params={"role": "public"}).json()["scenarios"]}
     assert public["S1"] == "2025-07-22"  # from Jebel Ali district only, never from the GBC site the public can't see
+
+
+def test_docker_lock_matches_requirements():
+    """The Docker image installs requirements-lock.txt; it must pin the same top-level versions as requirements.txt."""
+    import re
+    from pathlib import Path
+    here = Path(__file__).resolve().parents[1]
+    norm = lambda n: re.sub(r"[-_.]+", "-", n).lower()
+    lock = {norm(n): v for n, v in re.findall(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)", (here / "requirements-lock.txt").read_text(), re.MULTILINE)}
+    for name, version in re.findall(r"^([A-Za-z0-9_.\-]+)(?:\[[^\]]*\])?==(\S+)", (here / "requirements.txt").read_text(), re.MULTILINE):
+        assert lock.get(norm(name)) == version, f"{name}: requirements.txt {version}, lock {lock.get(norm(name))}"
