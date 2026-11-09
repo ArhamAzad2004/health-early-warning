@@ -45,6 +45,7 @@ export default function Tour({ role, onClose }) {
     addEventListener('keydown', key)
     return () => {
       removeEventListener('keydown', key)
+      scrollTo(scrollX, scrollY)  // stop any smooth scroll still running, so the page doesn't move under the next click
       const back = before?.isConnected && before !== document.body ? before : document.querySelector('[data-tour-start]')
       back?.focus()
     }
