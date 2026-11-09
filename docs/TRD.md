@@ -132,3 +132,9 @@ Current result (seed 42): sensitivity 1.0, area sensitivity 0.8 (GBC Site B not 
 - No causal claims: the system says signals rose together, not that one caused another.
 - Weights and thresholds are assumptions tuned on two scenarios; real deployment needs calibration on historical data.
 - Live weather is real but not used for detection, because the simulated window is in the past.
+
+**Known behaviours (accepted, not tuned away):**
+- GBC Site B is not alerted in S2: its signals corroborated on 31 Aug only, never on two consecutive days. Reported as `missed_areas` and `known_limit` in the back-test and on the Validation page.
+- The one false alarm (Al Quoz, 28–29 Jun) is a credible heat pattern: heat index, heat-illness visits and air quality rose together for two days.
+- Air quality takes about 12 % of the Site A heat alert because environmental spikes count as exposure for 7 days at weight 0.6.
+- Tuning these away would fit the two designed scenarios and break the locked headline numbers.

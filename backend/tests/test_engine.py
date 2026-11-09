@@ -17,6 +17,7 @@ def test_missed_areas_reported_as_known_limit():
     # S2: GBC Site B only had its absence signal in window, never corroborated on two consecutive days.
     assert by_id["S2"]["missed_areas"] == ["gbc_site_b"]
     assert by_id["S1"]["missed_areas"] == []
+    assert "consecutive" in by_id["S2"]["known_limit"]
 
 
 def test_small_cells_suppressed():
