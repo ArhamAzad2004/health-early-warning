@@ -160,6 +160,16 @@ With `role=public` each object is trimmed to `id, area_id, area, start, end, lev
 ```
 `missing_input` has five rows (`incidents`, `absence`, `aqi`, `heat_index`, `lab_resp_pos`); `calibration` has seven (3.0 … 6.0). `role=public` → 403.
 
+### `GET /api/notifications?role=employer_hse&date=2025-07-20`
+
+One notification per responsible role, dated the day the alert opens. Built only from alert metadata, so it carries no counts. `date` (optional) returns only what had been sent by then. `public` → 403; bad date → 400.
+
+```json
+[{"id": "gbc_site_a-2025-07-20-0", "alert_id": "gbc_site_a-2025-07-20", "area_id": "gbc_site_a",
+  "area": "GBC Site A – Jebel Ali", "date": "2025-07-20", "to": "Site HSE Manager (Gulf Build Co.)",
+  "level": "alert", "category": "heat", "action": "Enforce midday work-break and hydration protocol at site; ..."}]
+```
+
 ### `GET /api/live`
 ```json
 {"ok": true, "time": "2026-10-27T13:00", "temperature": 34.1, "humidity": 58, "feels_like": 39.6,
