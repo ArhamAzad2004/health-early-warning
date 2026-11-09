@@ -39,6 +39,8 @@ DATA = generate()
 SCORES, ALERTS = engine.run(DATA)
 BACKTEST = engine.backtest(DATA, ALERTS)
 BACKTEST_SITES = engine.backtest(DATA, ALERTS, scope=lambda a: AREAS[a]["type"] == "site")  # employer role
+for _s in BACKTEST_SITES["scenarios"]:  # full scenario names mention districts the employer role cannot see
+    _s["name"] = next(sc["short"] for sc in SCENARIOS if sc["id"] == _s["id"])
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
 LIVE_CACHE = []  # [fetched_at, result]; protects the free Open-Meteo quota once the demo is public
@@ -63,11 +65,13 @@ def published(signal, values):
     return [None if v is None or suppress(signal, v)[1] else v for v in values]
 
 
-# Baselines and z-scores shown to users are computed only from published values, so no
-# combination of them (e.g. differencing neighbouring 28-day means) can reveal a hidden count.
-# Detection itself still uses the full data internally.
-PUBLIC_Z = {a: {s: engine.baseline_z(published(s, v), SIGNALS[s]["count"]) for s, v in sc["series"].items()}
-            for a, sc in SCORES.items()}
+# Derived numbers are recomputed from published values only, so no combination of numbers on
+# screen can reveal a hidden count: baselines and z-scores for every role; risk, peak risk and
+# contributions for the employer and public roles. The public health authority legitimately holds
+# the full data, so it keeps full-fidelity risk. Detection and alerts always use the full data.
+PUBLIC = {a: engine.score_area({s: published(s, v) for s, v in sc["series"].items()}) for a, sc in SCORES.items()}
+PUBLIC_Z = {a: zs for a, (zs, _) in PUBLIC.items()}
+PUBLIC_DAYS = {a: days for a, (_, days) in PUBLIC.items()}
 
 
 @app.get("/api/meta")
@@ -99,7 +103,8 @@ def signals(area_id: str, role: str = Role):
                 mean = z = None
             rows.append(dict(date=DATES[i].isoformat(), value=val, suppressed=sup, missing=v is None, baseline=mean, z=z))
         out[s] = rows
-    risk = [dict(date=DATES[i].isoformat(), risk=d["risk"], level=engine.level(d["risk"])) for i, d in enumerate(sc["days"])]
+    days = sc["days"] if role == "public_health" else PUBLIC_DAYS[area_id]
+    risk = [dict(date=DATES[i].isoformat(), risk=d["risk"], level=engine.level(d["risk"])) for i, d in enumerate(days)]
     return dict(area_id=area_id, signals=out, risk=risk)
 
 
@@ -112,8 +117,8 @@ def risk(date: str, role: str = Role):
     for a in AREAS:
         if not visible(role, a):
             continue
-        d = SCORES[a]["days"][i]
-        out.append(dict(area_id=a, risk=d["risk"], level=engine.level(d["risk"]), missing=d["missing"]))
+        r = (SCORES[a]["days"] if role == "public_health" else PUBLIC_DAYS[a])[i]["risk"]
+        out.append(dict(area_id=a, risk=r, level=engine.level(r), missing=SCORES[a]["days"][i]["missing"]))
     return out
 
 
@@ -126,10 +131,23 @@ def hide_small(area_id, e):
     return dict(e, baseline=mean, z=z)
 
 
+def public_alert(al):
+    """An alert as users see it: peak risk and contributions recomputed from published values."""
+    days = PUBLIC_DAYS[al["area_id"]][DATE_INDEX[al["start"]]:DATE_INDEX[al["end"]] + 1]
+    totals = {s: sum(d["contrib"][s] for d in days) for s in days[0]["contrib"]}
+    total = sum(totals.values()) or 1
+    shares = {s: round(v / total, 3) for s, v in sorted(totals.items(), key=lambda kv: -kv[1])}
+    return dict(al, peak_risk=max(d["risk"] for d in days), contributions=shares,
+                evidence=[hide_small(al["area_id"], e) for e in al["evidence"]])
+
+
+PUBLIC_ALERTS = [public_alert(al) for al in ALERTS]
+AUTHORITY_ALERTS = [dict(al, evidence=[hide_small(al["area_id"], e) for e in al["evidence"]]) for al in ALERTS]
+
+
 @app.get("/api/alerts")
 def alerts(role: str = Role):
-    out = [dict(al, evidence=[hide_small(al["area_id"], e) for e in al["evidence"]])
-           for al in ALERTS if visible(role, al["area_id"])]
+    out = [al for al in (AUTHORITY_ALERTS if role == "public_health" else PUBLIC_ALERTS) if visible(role, al["area_id"])]
     if role == "public":  # the public sees advisories, not the underlying health counts
         out = [{k: v for k, v in al.items() if k in ("id", "area_id", "area", "start", "end", "level", "action", "category")} for al in out]
     return out

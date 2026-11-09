@@ -3,7 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import main as main_module
-from app.engine import baseline_z
+from app.engine import baseline_z, score_area
 from app.main import app
 from app.sim import AREAS, SIGNALS
 
@@ -138,3 +138,30 @@ def test_server_errors_keep_headers_and_hide_details(monkeypatch):
     assert r.status_code == 500
     assert r.headers["x-frame-options"] == "DENY"
     assert "Traceback" not in r.text and "KeyError" not in r.text
+
+
+def test_employer_and_public_risk_come_only_from_published_values():
+    """Risk on the employer and public views must be reproducible from published values alone."""
+    for area in AREAS:
+        published = {s: [r["value"] for r in rows]
+                     for s, rows in get("/api/signals", area_id=area).json()["signals"].items()}
+        risk = [d["risk"] for d in score_area(published)[1]]
+        for role in ("employer_hse", "public"):
+            if area not in visible_areas(role):
+                continue
+            assert [r["risk"] for r in get("/api/signals", area_id=area, role=role).json()["risk"]] == risk
+            assert {r["area_id"]: r["risk"] for r in get("/api/risk", date="2025-07-23", role=role).json()}[area] == risk[83]
+    for al in get("/api/alerts", role="employer_hse").json():
+        rows = get("/api/signals", area_id=al["area_id"], role="employer_hse").json()["risk"]
+        assert al["peak_risk"] == max(r["risk"] for r in rows if al["start"] <= r["date"] <= al["end"])
+
+
+def test_authority_keeps_full_fidelity_risk():
+    from app.main import ALERTS
+    shown = {a["id"]: a["peak_risk"] for a in get("/api/alerts", role="public_health").json()}
+    assert shown == {a["id"]: a["peak_risk"] for a in ALERTS}
+
+
+def test_employer_scenario_names_do_not_mention_districts():
+    names = " ".join(s["name"] for s in get("/api/backtest", role="employer_hse").json()["scenarios"])
+    assert not any(AREAS[d]["name"] in names for d in DISTRICTS)
