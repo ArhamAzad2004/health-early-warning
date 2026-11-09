@@ -45,7 +45,7 @@ for _s in BACKTEST_SITES["scenarios"]:  # full scenario names mention districts 
     _s["name"] = next(sc["short"] for sc in SCENARIOS if sc["id"] == _s["id"])
 STARTUP_SECONDS = round(time.monotonic() - _started, 1)
 BUILD = os.environ.get("RENDER_GIT_COMMIT", "dev")[:7]  # logged only: a public build id would tell attackers which fixes are live
-logging.getLogger("uvicorn.error").info("Generated %d areas, %d alerts and the back-test in %.1f s (build %s)",
+log.info("Generated %d areas, %d alerts and the back-test in %.1f s (build %s)",
                                         len(AREAS), len(ALERTS), STARTUP_SECONDS, BUILD)
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
