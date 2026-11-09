@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import time
 import urllib.request
@@ -6,6 +7,7 @@ from datetime import date
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import engine
@@ -18,19 +20,25 @@ SECURITY_HEADERS = {
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "no-referrer",
     "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
+    "Strict-Transport-Security": "max-age=31536000",
 }
 
 
 @app.middleware("http")
 async def security_headers(request, call_next):
     # shortcut: no Content-Security-Policy yet; Google Fonts, map tiles and Vite's inline styles need an allow-list
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:  # crashes would otherwise skip this middleware and leak no headers but also no safe body
+        logging.exception("Unhandled error on %s", request.url.path)
+        response = JSONResponse({"detail": "Internal server error"}, status_code=500)
     response.headers.update(SECURITY_HEADERS)
     return response
 
 DATA = generate()
 SCORES, ALERTS = engine.run(DATA)
 BACKTEST = engine.backtest(DATA, ALERTS)
+BACKTEST_SITES = engine.backtest(DATA, ALERTS, scope=lambda a: AREAS[a]["type"] == "site")  # employer role
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
 LIVE_CACHE = []  # [fetched_at, result]; protects the free Open-Meteo quota once the demo is public
@@ -48,6 +56,18 @@ def suppress(signal, v):
     if v is not None and SIGNALS[signal]["count"] and 0 < v < 5:
         return None, True
     return v, False
+
+
+def published(signal, values):
+    """A series as users see it: suppressed and missing days are unknown."""
+    return [None if v is None or suppress(signal, v)[1] else v for v in values]
+
+
+# Baselines and z-scores shown to users are computed only from published values, so no
+# combination of them (e.g. differencing neighbouring 28-day means) can reveal a hidden count.
+# Detection itself still uses the full data internally.
+PUBLIC_Z = {a: {s: engine.baseline_z(published(s, v), SIGNALS[s]["count"]) for s, v in sc["series"].items()}
+            for a, sc in SCORES.items()}
 
 
 @app.get("/api/meta")
@@ -74,8 +94,8 @@ def signals(area_id: str, role: str = Role):
         rows = []
         for i, v in enumerate(values):
             val, sup = suppress(s, v)
-            mean, z, _ = sc["zs"][s][i]
-            if sup:  # baseline + z would let anyone rebuild the hidden count
+            mean, z, _ = PUBLIC_Z[area_id][s][i]
+            if sup:
                 mean = z = None
             rows.append(dict(date=DATES[i].isoformat(), value=val, suppressed=sup, missing=v is None, baseline=mean, z=z))
         out[s] = rows
@@ -97,15 +117,18 @@ def risk(date: str, role: str = Role):
     return out
 
 
-def hide_small(e):
-    """Evidence row with a 1-4 count blanked, along with the baseline and z that would reveal it."""
+def hide_small(area_id, e):
+    """Evidence row as users may see it: 1-4 counts blanked, baseline and z from published values only."""
     val, sup = suppress(e["signal"], e["value"])
-    return dict(e, value=val, baseline=None, z=None) if sup else e
+    if sup:
+        return dict(e, value=None, baseline=None, z=None)
+    mean, z, _ = PUBLIC_Z[area_id][e["signal"]][DATE_INDEX[e["date"]]]
+    return dict(e, baseline=mean, z=z)
 
 
 @app.get("/api/alerts")
 def alerts(role: str = Role):
-    out = [dict(al, evidence=[hide_small(e) for e in al["evidence"]])
+    out = [dict(al, evidence=[hide_small(al["area_id"], e) for e in al["evidence"]])
            for al in ALERTS if visible(role, al["area_id"])]
     if role == "public":  # the public sees advisories, not the underlying health counts
         out = [{k: v for k, v in al.items() if k in ("id", "area_id", "area", "start", "end", "level", "action", "category")} for al in out]
@@ -116,9 +139,7 @@ def alerts(role: str = Role):
 def backtest(role: str = Role):
     if role == "public":
         raise HTTPException(403, "Validation detail is for public health and employer roles")
-    lists = ("areas_hit", "areas_affected", "missed_areas")
-    scenarios = [dict(s, **{k: [a for a in s[k] if visible(role, a)] for k in lists}) for s in BACKTEST["scenarios"]]
-    return dict(BACKTEST, scenarios=scenarios)
+    return BACKTEST_SITES if role == "employer_hse" else BACKTEST
 
 
 @app.get("/api/live")

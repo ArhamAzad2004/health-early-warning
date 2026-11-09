@@ -2,6 +2,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app import main as main_module
+from app.engine import baseline_z
 from app.main import app
 from app.sim import AREAS, SIGNALS
 
@@ -101,3 +103,38 @@ def test_security_headers_on_every_response(path):
     assert headers["x-content-type-options"] == "nosniff"
     assert headers["x-frame-options"] == "DENY"
     assert headers["referrer-policy"] == "no-referrer"
+
+
+@pytest.mark.parametrize("role", ROLES)
+def test_baselines_come_only_from_published_values(role):
+    """If every shown baseline and z can be recomputed from shown values alone, they cannot reveal a hidden count."""
+    for area in visible_areas(role):
+        signals = get("/api/signals", area_id=area, role=role).json()["signals"]
+        for s, rows in signals.items():
+            expected = baseline_z([r["value"] for r in rows], SIGNALS[s]["count"])
+            for r, (mean, z, _) in zip(rows, expected):
+                if not r["suppressed"]:
+                    assert (r["baseline"], r["z"]) == (mean, z), (area, s, r["date"])
+        for al in get("/api/alerts", role=role).json():
+            if al["area_id"] != area:
+                continue
+            for e in al.get("evidence", []):
+                row = next(r for r in signals[e["signal"]] if r["date"] == e["date"])
+                assert (e["baseline"], e["z"]) == (row["baseline"], row["z"])
+
+
+def test_employer_backtest_counts_only_its_sites():
+    b = get("/api/backtest", role="employer_hse").json()
+    alerts = get("/api/alerts", role="employer_hse").json()
+    assert b["total_alerts"] == len(alerts)
+    for s in b["scenarios"]:
+        assert set(s["areas_affected"]) <= set(SITES)
+        assert s["first_alert"] is None or s["first_alert"] in {a["start"] for a in alerts}
+
+
+def test_server_errors_keep_headers_and_hide_details(monkeypatch):
+    monkeypatch.setattr(main_module, "SCORES", {})
+    r = TestClient(app, raise_server_exceptions=False).get("/api/signals", params={"area_id": "deira"})
+    assert r.status_code == 500
+    assert r.headers["x-frame-options"] == "DENY"
+    assert "Traceback" not in r.text and "KeyError" not in r.text
