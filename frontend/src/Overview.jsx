@@ -78,21 +78,23 @@ export default function Overview({ role, date, setDate, onOpen }) {
             )
           })}
         </MapContainer>
-        <div className="replay">
-          <button className="btn" onClick={() => setPlaying(p => !p)} aria-label={playing ? 'Pause replay' : 'Play replay'}>
-            {playing ? 'Pause' : 'Play'}
-          </button>
-          <input type="range" min={0} max={Math.max(0, days.length - 1)} value={Math.max(0, idx)}
-            onChange={e => setDate(days[+e.target.value])} aria-label="Replay date" />
-          <span className="mono">{date}</span>
-        </div>
-        <div className="jumps">
-          <span className="muted small">Jump to</span>
-          {meta?.scenarios.map(s => (
-            <button key={s.id} className="btn" onClick={() => { setPlaying(false); setDate(s.peak) }}>
-              {s.short} · {fmtDate(s.peak)}
+        <div className="replay-controls">
+          <div className="replay">
+            <button className="btn primary" onClick={() => setPlaying(p => !p)} aria-label={playing ? 'Pause replay' : 'Play replay'}>
+              {playing ? 'Pause' : 'Play'}
             </button>
-          ))}
+            <input type="range" min={0} max={Math.max(0, days.length - 1)} value={Math.max(0, idx)}
+              onChange={e => setDate(days[+e.target.value])} aria-label="Replay date" />
+            <span className="mono">{date}</span>
+          </div>
+          <div className="jumps">
+            <span className="muted small">Jump to</span>
+            {meta?.scenarios.map(s => (
+              <button key={s.id} className="btn" onClick={() => { setPlaying(false); setDate(s.peak) }}>
+                {s.short} · {fmtDate(s.peak)}
+              </button>
+            ))}
+          </div>
         </div>
         <p className="muted small">Replay shows what was known on each day — every signal arrives after its reporting delay. Dashed circles are Gulf Build Co. work sites.</p>
       </section>
