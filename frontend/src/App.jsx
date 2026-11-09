@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from './api.js'
 import Overview from './Overview.jsx'
 import AlertDetail from './AlertDetail.jsx'
@@ -11,15 +11,33 @@ const ROLES = {
   public: 'Public',
 }
 
+const SCOPE = {
+  public_health: 'all districts and work sites',
+  employer_hse: 'Gulf Build Co. work sites only',
+  public: 'districts only: weather, air quality and advisories',
+}
+
 export default function App() {
   const [role, setRole] = useState('public_health')
   const [page, setPage] = useState('overview')
   const [alert, setAlert] = useState(null)
   const [date, setDate] = useState('2025-07-20')
   const [live, setLive] = useState(null)
+  const [notice, setNotice] = useState('')
+  const noticeTimer = useRef()
+
+  const switchRole = r => {
+    setRole(r)
+    setNotice(`Now viewing as ${ROLES[r]}: ${SCOPE[r]}.`)
+    clearTimeout(noticeTimer.current)
+    noticeTimer.current = setTimeout(() => setNotice(''), 4000)
+  }
 
   useEffect(() => { api('live').then(setLive).catch(() => setLive({ ok: false })) }, [])
-  useEffect(() => { setAlert(null); if (page === 'alert') setPage('overview') }, [role])
+  useEffect(() => {
+    setAlert(null)
+    if (page === 'alert' || (role === 'public' && page === 'validation')) setPage('overview')
+  }, [role])
 
   const open = a => { setAlert(a); setPage('alert') }
   const tabs = [['overview', 'Overview'], ['validation', 'Validation'], ['privacy', 'Privacy & governance']]
@@ -34,16 +52,18 @@ export default function App() {
         </div>
         <nav>
           {tabs.map(([id, label]) => (
-            <button key={id} className={page === id ? 'tab on' : 'tab'} onClick={() => setPage(id)}>{label}</button>
+            <button key={id} className={page === id ? 'tab on' : 'tab'} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>{label}</button>
           ))}
         </nav>
         <label className="role">
           Viewing as
-          <select value={role} onChange={e => setRole(e.target.value)}>
+          <select value={role} onChange={e => switchRole(e.target.value)}>
             {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </label>
       </header>
+
+      <p className="notice" role="status">{notice}</p>
 
       <div className="banner" role="note">
         Aggregated counts only · cells under 5 suppressed · <strong>not for individual employment or disciplinary use</strong>

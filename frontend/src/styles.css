@@ -24,6 +24,8 @@ nav { display: flex; gap: 4px; flex: 1; }
 .role { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
 .role select { font: inherit; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
 
+.notice { margin: 0 0 8px; min-height: 0; font-size: 13px; font-weight: 500; color: var(--accent); }
+.notice:empty { margin: 0; }  /* stays in the page so screen readers announce changes */
 .banner { background: #FFF6E5; border: 1px solid #F0D9A8; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
 .live { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; font-size: 13px; padding: 10px 2px; }
 .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #009E73; display: inline-block; }

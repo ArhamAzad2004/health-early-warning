@@ -7,8 +7,12 @@ const CHOSEN = 4.5
 export default function Validation({ role }) {
   const [b, setB] = useState(null)
   const [areas, setAreas] = useState([])
-  useEffect(() => { api('backtest', { role }).then(setB) }, [role])
-  useEffect(() => { api('areas', { role }).then(setAreas).catch(() => setAreas([])) }, [role])
+  useEffect(() => {
+    let current = true  // ignore late answers for a previous role
+    api('backtest', { role }).then(d => current && setB(d))
+    api('areas', { role }).then(d => current && setAreas(d)).catch(() => current && setAreas([]))
+    return () => { current = false }
+  }, [role])
   if (!b) return <p className="muted">Running back-test…</p>
 
   return (
