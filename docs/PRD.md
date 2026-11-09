@@ -37,7 +37,7 @@ Sentinel Dubai is an early-warning console that fuses population, environmental,
 - No real patient or employee data; no database; no login (role switcher instead).
 - No causal claims. Alerts say "signals rose together", not "X caused Y".
 - No machine-learned model. Detection is transparent statistics (z-scores, EWMA, weighted fusion).
-- No LLM in the loop. "Claude-written alert briefings" is a stretch goal only.
+- No LLM in the loop. AI-drafted alert briefings are a possible later addition, not part of v1.
 
 ## 6. Features
 
@@ -93,4 +93,4 @@ Sentinel Dubai is an early-warning console that fuses population, environmental,
 
 ## 11. Future work
 
-Claude-written alert briefings (plain-language paragraph per alert); real open-data baselines replacing synthetic districts; Postgres persistence; real authentication and a dedicated regulator role replacing the role switcher.
+AI-drafted plain-language alert briefings (clearly labelled); real open-data baselines replacing synthetic districts; Postgres persistence; real authentication and a dedicated regulator role replacing the role switcher.

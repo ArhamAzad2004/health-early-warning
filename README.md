@@ -1,6 +1,6 @@
 # Sentinel Dubai — population & workforce health early warning
 
-[![CI](https://github.com/ArhamAzad2004/health-early-warning/actions/workflows/ci.yml/badge.svg)](https://github.com/ArhamAzad2004/health-early-warning/actions/workflows/ci.yml)
+[![CI](https://github.com/ArhamAzad2004/health-early-warning/actions/workflows/ci.yml/badge.svg)](https://github.com/ArhamAzad2004/health-early-warning/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Live demo: https://sentinel-dubai.onrender.com** (free hosting: the first visit after a quiet spell can take up to a minute to wake up)
 

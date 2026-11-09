@@ -82,7 +82,7 @@ Each alert also carries `category` (`heat` or `respiratory`) and five `assumptio
 ## 6. Privacy design
 
 - All data is daily aggregate values per area. No person-level record exists anywhere.
-- Small-cell suppression (`main.suppress`): any count signal with value 1–4 is returned as `value: null, suppressed: true`; 0 stays 0; environmental values are never suppressed. Baseline and z are still returned so charts stay explainable. The same rule is applied to the `value` inside each alert's `evidence` rows.
+- Small-cell suppression (`main.suppress`): any count signal with value 1–4 is returned as `value: null, suppressed: true`; 0 stays 0; environmental values are never suppressed. On suppressed cells the baseline and z are blanked too, because together they would let anyone recalculate the hidden count. The same rule is applied to each alert's `evidence` rows. A test checks that no suppressed cell carries a baseline or z.
 - Role scope is enforced in the API: `public_health` → all areas; `employer_hse` → sites only; `public` → districts only. Out-of-scope `area_id` → 404. Invalid role → 422.
 - `public` additionally gets only `heat_index` and `aqi` in `/api/signals`, only `id, area_id, area, start, end, level, action, category` in `/api/alerts`, and 403 on `/api/backtest`.
 - Boundary banner on every page: "Aggregated surveillance data. Not for individual employment or disciplinary use."

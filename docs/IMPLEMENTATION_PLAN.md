@@ -14,8 +14,8 @@ Solo portfolio project. `TRD.md` and `BACKEND_SCHEMA.md` mirror `backend/app/sim
 
 Tracked as GitHub issues under the **v1.0 portfolio release** milestone. In rough priority order:
 
-1. Public live link on Render.
-2. README screenshots or a short GIF; architecture diagram.
+1. ~~Public live link on Render.~~ Done: https://sentinel-dubai.onrender.com
+2. ~~README screenshots and architecture diagram.~~ Done.
 3. Automated prevention triggers: notify the responsible role when an alert opens.
 4. Unknown or approximate locations reflected in confidence and validation.
 5. Regulator/policy summary export.
@@ -28,8 +28,8 @@ AI-drafted plain-language alert briefings (clearly labelled); real open-data bas
 
 ## Definition of done for v1.0
 
-- [ ] Live link works from a fresh browser; README shows it.
-- [ ] Fresh clone to running app with `npm run setup` and `npm run dev`.
-- [ ] CI green on `main`; tests lock the headline numbers.
+- [x] Live link works from a fresh browser; README shows it.
+- [x] Fresh clone to running app with `npm run setup` and `npm run dev`.
+- [x] CI green on `main`; tests lock the headline numbers.
 - [ ] No endpoint returns individual records or recoverable small counts.
 - [ ] README, PRD and TRD numbers match the back-test.
