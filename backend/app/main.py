@@ -15,7 +15,12 @@ from . import engine
 from .sim import AREAS, DATES, SCENARIOS, SIGNALS, generate
 
 log = logging.getLogger("uvicorn.error")
-app = FastAPI(title="Sentinel Dubai – health early warning")
+# API docs pages are on for local development and off in the Docker image (API_DOCS=0): the public site
+# doesn't need an interactive map of every endpoint, and the pages load scripts from a CDN.
+_docs = os.environ.get("API_DOCS", "1") == "1"
+app = FastAPI(title="Sentinel Dubai – health early warning",
+              docs_url="/docs" if _docs else None, redoc_url="/redoc" if _docs else None,
+              openapi_url="/openapi.json" if _docs else None)
 
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
