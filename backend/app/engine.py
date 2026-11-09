@@ -5,10 +5,14 @@ positive part, capped -> EWMA smoothing. Risk on day D fuses each signal as it w
 *known* on day D, i.e. its smoothed z on day D - reporting latency. An alert opens when
 risk >= WATCH on two consecutive days with at least two signals corroborating.
 """
+import random
 import statistics
-from .sim import AREAS, DATES, SCENARIOS, SIGNALS
+from .sim import AREAS, DATES, SCENARIOS, SIGNALS, location_reliability
 
 DATE_ISO = [d.isoformat() for d in DATES]
+LOCATED = location_reliability()
+RELIABLE_LOCATION = 0.8  # below this share, an alert's confidence drops one step
+UNKNOWN_LOCATION_STRESS = 0.25  # share of records dropped in the back-test stress row
 
 WINDOW, MIN_HISTORY, Z_CAP, ALPHA = 28, 7, 6.0, 0.5
 # Environmental exposure alone should not alarm, so it carries less weight than health outcomes.
@@ -140,11 +144,15 @@ def _describe(area_id, series, zs, days, i0, i1):
                              value=series[s][j], baseline=zs[s][j][0], z=zs[s][j][1], share=share))
     cells = len(window) * len(zs)
     completeness = round(1 - sum(len(d["missing"]) for d in window) / cells, 2)
+    located = [LOCATED[area_id][s][i] for s in LOCATED[area_id] if s in zs for i in range(i0, i1 + 1)]
+    location = round(statistics.fmean(located), 2) if located else 1.0
+    confidence = 2 if completeness >= 0.9 else 1 if completeness >= 0.75 else 0
+    confidence -= location < RELIABLE_LOCATION
     return dict(
         id=f"{area_id}-{DATES[i0].isoformat()}", area_id=area_id, area=AREAS[area_id]["name"],
         start=DATES[i0].isoformat(), end=DATES[i1].isoformat(), peak_risk=peak["risk"], level=lvl,
-        contributions=shares, evidence=evidence, completeness=completeness,
-        confidence="high" if completeness >= 0.9 else "medium" if completeness >= 0.75 else "low",
+        contributions=shares, evidence=evidence, completeness=completeness, location_reliability=location,
+        confidence=["low", "low", "medium", "high"][confidence + 1],
         **playbook(area_id, shares, lvl),
         assumptions=[
             f"Baseline = previous {WINDOW} days; z-scores capped at {Z_CAP}; EWMA alpha {ALPHA}.",
@@ -152,6 +160,7 @@ def _describe(area_id, series, zs, days, i0, i1):
             f"Opens when risk >= {WATCH} two days running with >= 2 signals at smoothed z >= {CORROBORATE_Z}.",
             "Each signal is used only as it was known that day (reporting latency respected).",
             "Missing data contributes 0 and lowers confidence; data are synthetic.",
+            f"Confidence drops one step when under {int(RELIABLE_LOCATION * 100)}% of records have a reliable location.",
         ])
 
 
@@ -207,6 +216,14 @@ def backtest(data, alerts, scope=lambda area_id: True):
         m = metrics(run(data, exclude=(s,))[1])
         base["missing_input"].append(dict(without=s, label=SIGNALS[s]["label"], **{
             k: m[k] for k in ("sensitivity", "area_sensitivity", "ppv", "false_alarms", "mean_lead_time_days")}))
+    # Stress test: a quarter of health/work records cannot be placed in an area (unknown location).
+    def thin(a, s, ser):  # own seed per series, so one area's drops never depend on another's counts
+        rng = random.Random(f"{a}:{s}")
+        return [None if v is None else sum(rng.random() >= UNKNOWN_LOCATION_STRESS for _ in range(v)) for v in ser]
+    thinned = {a: {s: thin(a, s, ser) if SIGNALS[s]["count"] else ser for s, ser in sig.items()} for a, sig in data.items()}
+    m = metrics(run(thinned)[1])
+    base["missing_input"].append(dict(without="unknown_location", label=f"{int(UNKNOWN_LOCATION_STRESS * 100)}% of records with unknown location", **{
+        k: m[k] for k in ("sensitivity", "area_sensitivity", "ppv", "false_alarms", "mean_lead_time_days")}))
     base["calibration"] = [dict(threshold=t, **{k: m[k] for k in ("sensitivity", "ppv", "false_alarms", "mean_lead_time_days")})
                            for t in (3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0) for m in [metrics(run(data, watch=t)[1])]]
     # Impact: clearly labelled assumptions, not a claim.
