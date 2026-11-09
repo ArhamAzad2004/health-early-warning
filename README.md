@@ -1,16 +1,18 @@
 # Sentinel Dubai — population & workforce health early warning
 
-Hackathon prototype for the **Population and Workforce Health Early Warning** challenge.
-It fuses clinic visits, lab positives, sickness absence, occupational incident reports, heat index and air quality
+[![CI](https://github.com/ArhamAzad2004/health-early-warning/actions/workflows/ci.yml/badge.svg)](https://github.com/ArhamAzad2004/health-early-warning/actions/workflows/ci.yml)
+
+Early signs of a health threat rarely sit in one dataset: a few extra clinic visits, more sick days at a
+company, extra incident reports on a building site, an unusually hot or dusty day. Sentinel Dubai fuses clinic visits, lab positives, sickness absence, occupational incident reports, heat index and air quality
 for Dubai districts and a (fictional) construction employer, Gulf Build Co., and raises **explainable,
 privacy-preserving alerts** that name a proportionate action and who should take it.
 
 Health and workforce data are **simulated** (fixed seed, two injected outbreaks). Live Dubai weather and air
 quality come from [Open-Meteo](https://open-meteo.com) (free, no key).
 
-## What the demo shows
+## What it does
 
-| Challenge requirement | Where to see it |
+| Capability | Where to see it |
 |---|---|
 | 1. Multi-signal surveillance | 7 signals of 5 kinds (service, lab, workplace, occupational, environmental) on the map |
 | 2. Explainable detection | Alert page: contribution bars, risk timeline, each signal against its own baseline |
@@ -20,6 +22,13 @@ quality come from [Open-Meteo](https://open-meteo.com) (free, no key).
 | 6. Impact | Validation tab: estimated lost workdays and incidents avoided, with stated assumptions |
 
 Current back-test: both outbreaks caught **3–5 days before their harm peak**, PPV 80%, 1 false alarm in 5 months across 11 areas.
+
+## Engineering highlights
+
+- **Explainable statistics, not a black box:** rolling baselines, z-scores and EWMA fused into one risk score; every alert shows each signal's share, evidence and assumptions.
+- **Honest validation:** a day-by-day back-test that only uses each signal once it would really have been reported, plus a threshold calibration sweep and missing-feed re-runs.
+- **Privacy by design:** aggregated counts only, small-cell suppression enforced in the API (including a bypass found in a security audit and closed with a regression test), role-based views.
+- **Production habits:** CI on every pull request (tests, build, Docker image smoke test), one-command setup, single-container deploy config for Render.
 
 ## Run it locally
 
@@ -43,6 +52,12 @@ The `Dockerfile` builds the dashboard and serves it from the API, so the whole d
 On [Render](https://render.com): **New → Blueprint**, pick this repo, and it reads `render.yaml`
 (free plan, redeploys on every merge to `main`). Locally, `npm run build` in `frontend/` then start
 the backend and open http://localhost:8000.
+
+## Roadmap
+
+Open work is tracked in [issues](https://github.com/ArhamAzad2004/health-early-warning/issues) under the
+[v1.0 portfolio release](https://github.com/ArhamAzad2004/health-early-warning/milestones) milestone:
+a public live link, alert notifications, handling unknown locations, and a regulator summary export.
 
 ## Layout
 

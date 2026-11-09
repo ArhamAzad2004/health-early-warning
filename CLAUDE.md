@@ -1,17 +1,18 @@
-# Sentinel Dubai — health early warning (hackathon)
+# Sentinel Dubai — health early warning (portfolio project)
 
 Prototype that fuses simulated Dubai health, workforce and environmental signals into explainable, privacy-preserving alerts. Plan and requirements live in `docs/` (PRD, TRD, APP_FLOW, DESIGN_BRIEF, BACKEND_SCHEMA, IMPLEMENTATION_PLAN); keep them in step with the code when behaviour changes.
 
 ## Rules
 - Never mention Claude or Claude Code in commits, PR descriptions, code, comments or docs. No `Co-Authored-By` trailer, no "Generated with" line.
 - A working demo beats breadth. Prefer small changes that keep the demo path working: map → Play → click alert → Validation tab.
-- Privacy is a judged requirement: never add an endpoint or field that returns individual-level data; health/work counts 1–4 must stay suppressed (`suppress()` in `backend/app/main.py`) — including inside alert evidence.
+- Privacy is a core requirement: never add an endpoint or field that returns individual-level data; health/work counts 1–4 must stay suppressed (`suppress()` in `backend/app/main.py`) — including inside alert evidence.
 - Health/workforce data are synthetic; don't present numbers as real-world findings.
 
 ## Run
-- Backend (from `backend/`): `.venv/Scripts/python -m uvicorn app.main:app --port 8000` (first time: `python -m venv .venv` then `.venv/Scripts/python -m pip install -r requirements.txt`)
-- Frontend (from `frontend/`): `npm install` once, then `npm run dev` → http://localhost:5173 (Vite proxies `/api` to port 8000)
-- Tests (from `backend/`): `.venv/Scripts/python -m pytest -q` — must pass before committing.
+- From the repo root: `npm run setup` once, then `npm run dev` → dashboard http://localhost:5173, API http://localhost:8000 (Vite proxies `/api`).
+- Tests: `npm test` — must pass before committing. CI also builds the dashboard and the Docker image.
+- One-app mode (as deployed): `npm run build` in `frontend/`, then the backend alone serves everything on port 8000.
+- `main` is protected: changes go through a pull request with green checks.
 - Windows machine: PowerShell and Git Bash both available.
 
 ## Code map

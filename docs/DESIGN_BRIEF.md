@@ -50,7 +50,7 @@ Risk levels (the API's `level` values) use the Okabe–Ito colour-blind-safe set
 
 Rules: never red/green pairs; never encode meaning in colour only; map circles get a 1.5 px dark outline so they read on tiles; signals in charts use distinct line styles (solid / dashed / dotted) as well as colour.
 
-Dark mode is not required for the hackathon.
+Dark mode is out of scope for v1.
 
 ## 5. Typography
 
