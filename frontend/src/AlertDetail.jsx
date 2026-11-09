@@ -59,7 +59,7 @@ export default function AlertDetail({ role, alert, onBack }) {
         <section className="card">
           <h2>Fused risk score over time</h2>
           <ResponsiveContainer width="100%" height={200}>
-            <ComposedChart data={inView(sig.risk)} margin={{ left: 0, right: 16, top: 8 }}>
+            <ComposedChart data={inView(sig.risk)} margin={{ left: 0, right: 64, top: 8 }}>{/* room for the threshold labels */}
               <XAxis dataKey="date" tickFormatter={fmtDate} fontSize={12} minTickGap={24} />
               <YAxis fontSize={12} width={32} />
               <Tooltip labelFormatter={fmtDate} />
