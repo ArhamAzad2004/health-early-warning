@@ -7,6 +7,7 @@ risk >= WATCH on two consecutive days with at least two signals corroborating.
 """
 import random
 import statistics
+
 from .sim import AREAS, DATES, SCENARIOS, SIGNALS, location_reliability
 
 DATE_ISO = [d.isoformat() for d in DATES]
@@ -156,7 +157,7 @@ def _describe(area_id, series, zs, days, i0, i1):
         **playbook(area_id, shares, lvl),
         assumptions=[
             f"Baseline = previous {WINDOW} days; z-scores capped at {Z_CAP}; EWMA alpha {ALPHA}.",
-            f"Weights: health outcomes 1.0, absence 0.8, environment 0.6 (exposure alone does not alarm).",
+            "Weights: health outcomes 1.0, absence 0.8, environment 0.6 (exposure alone does not alarm).",
             f"Opens when risk >= {WATCH} two days running with >= 2 signals at smoothed z >= {CORROBORATE_Z}.",
             "Each signal is used only as it was known that day (reporting latency respected).",
             "Missing data contributes 0 and lowers confidence; data are synthetic.",

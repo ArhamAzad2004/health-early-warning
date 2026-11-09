@@ -115,8 +115,8 @@ def generate(seed=SEED):
             data[a].update(absence=absn, incidents=inc)
 
     # Realistic gaps: ~3% random missing per series, plus one multi-day feed outage.
-    for a in data:
-        for s, series in data[a].items():
+    for signals in data.values():
+        for series in signals.values():
             for i in range(len(series)):
                 if rng.random() < 0.03:
                     series[i] = None

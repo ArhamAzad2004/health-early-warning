@@ -68,7 +68,7 @@ Current back-test: both outbreaks caught **3–5 days before their harm peak**, 
 - **Explainable statistics, not a black box:** rolling baselines, z-scores and EWMA fused into one risk score; every alert shows each signal's share, evidence and assumptions.
 - **Honest validation:** a day-by-day back-test that only uses each signal once it would really have been reported, plus a threshold calibration sweep and missing-feed re-runs.
 - **Privacy by design:** aggregated counts only, small-cell suppression enforced in the API (including a bypass found in a security audit and closed with a regression test), role-based views, and a privacy test matrix that checks every endpoint for every role.
-- **Production habits:** CI on every pull request (tests, build, Docker image smoke test), pinned dependencies with Dependabot, security headers, one-command setup, single-container deploy on Render.
+- **Production habits:** CI on every pull request (lint, unit and privacy tests, build, Docker image smoke test, and an end-to-end browser test of the demo path), pinned dependencies with Dependabot, security headers, one-command setup, single-container deploy on Render.
 
 ## Data, assumptions and limits
 
