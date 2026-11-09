@@ -201,8 +201,10 @@ def _metrics(alerts, scenarios=SCENARIOS):
         mean_lead_time_days=round(statistics.fmean(leads), 1) if leads else None)
 
 
-def backtest(data, alerts, scope=lambda area_id: True):
-    """Back-test metrics; `scope` limits them to the areas one role may see."""
+def backtest(data, alerts, scope=lambda area_id: True, impact_data=None):
+    """Back-test metrics; `scope` limits them to the areas one role may see.
+    `impact_data` is the series the impact estimate is built from (the published values when served)."""
+    impact_data = impact_data or data
     scenarios = [dict(sc, areas=[a for a in sc["areas"] if scope(a)]) for sc in SCENARIOS]
     scenarios = [sc for sc in scenarios if sc["areas"]]
 
@@ -236,13 +238,16 @@ def backtest(data, alerts, scope=lambda area_id: True):
         i0, i1 = DATE_ISO.index(p["first_alert"]), DATE_ISO.index(sc["end"].isoformat())
         for a in sc["areas"]:
             for s in excess if AREAS[a]["type"] == "site" else ():
-                zs = baseline_z(data[a][s], True)
-                excess[s] += sum(max(0, (data[a][s][i] or 0) - (zs[i][0] or 0)) for i in range(i0, i1 + 1))
+                zs = baseline_z(impact_data[a][s], True)
+                excess[s] += sum(max(0, (impact_data[a][s][i] or 0) - (zs[i][0] or 0)) for i in range(i0, i1 + 1))
+    hidden = {s: 0 < round(v) < 5 for s, v in excess.items()}  # a 1-4 total is a small count: suppress it and what derives from it
     base["impact"] = dict(
         assumptions=[f"Acting at the first alert prevents {int(eff * 100)}% of the excess harm that followed it.",
                      f"{int(sev_share * 100)}% of excess heat/exertion incidents would have been high-severity.",
                      "Excess = observed minus rolling baseline at affected GBC sites, from first alert to scenario end."],
-        excess_absence_days=round(excess["absence"]), avoided_lost_workdays=round(excess["absence"] * eff),
-        excess_incidents=round(excess["incidents"]), avoided_incidents=round(excess["incidents"] * eff, 1),
-        avoided_high_severity_incidents=round(excess["incidents"] * eff * sev_share, 1))
+        excess_absence_days=None if hidden["absence"] else round(excess["absence"]),
+        avoided_lost_workdays=None if hidden["absence"] else round(excess["absence"] * eff),
+        excess_incidents=None if hidden["incidents"] else round(excess["incidents"]),
+        avoided_incidents=None if hidden["incidents"] else round(excess["incidents"] * eff, 1),
+        avoided_high_severity_incidents=None if hidden["incidents"] else round(excess["incidents"] * eff * sev_share, 1))
     return base

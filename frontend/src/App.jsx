@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { Component, lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { api } from './api.js'
 import Overview from './Overview.jsx'
 import Tour from './Tour.jsx'
@@ -49,7 +49,13 @@ export default function App() {
     if (page === 'alert' || (role === 'public' && page === 'validation')) setPage('overview')
   }, [role])
 
-  const open = a => { setAlert(a); setPage('alert') }
+  const open = a => { setAlert(a); setPage('alert'); history.pushState({ alert: a.id }, '') }
+  // Browser Back from an alert returns to the overview instead of leaving the site.
+  useEffect(() => {
+    const back = () => setPage(p => (p === 'alert' ? 'overview' : p))
+    addEventListener('popstate', back)
+    return () => removeEventListener('popstate', back)
+  }, [])
   const tabs = [['overview', 'Overview'], ['validation', 'Validation'], ['privacy', 'Privacy & governance']]
     .filter(([id]) => !(role === 'public' && id === 'validation'))
 
@@ -97,9 +103,11 @@ export default function App() {
       <main>
         {page === 'overview' && <Overview role={role} date={date} setDate={setDate} onOpen={open} />}
         {page === 'alert' && alert && (
-          <Suspense fallback={<p className="muted">Loading alert…</p>}>
-            <AlertDetail role={role} alert={alert} onBack={() => setPage('overview')} />
-          </Suspense>
+          <LoadGuard onBack={() => setPage('overview')}>
+            <Suspense fallback={<p className="muted">Loading alert…</p>}>
+              <AlertDetail role={role} alert={alert} onBack={() => setPage('overview')} />
+            </Suspense>
+          </LoadGuard>
         )}
         {page === 'validation' && <Validation role={role} roleName={ROLES[role]} />}
         {page === 'privacy' && <Privacy roles={ROLES} />}
@@ -113,6 +121,22 @@ export default function App() {
     {tour && <Tour role={role} onClose={closeTour} />}
     </>
   )
+}
+
+// A failed chunk download (offline, or a new deploy replaced the file) must not blank the whole app.
+class LoadGuard extends Component {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  render() {
+    if (!this.state.failed) return this.props.children
+    return (
+      <div className="down" role="alert">
+        <p>This alert couldn't be loaded. Check your connection, then reload the page.</p>
+        <button className="btn" onClick={() => location.reload()}>Reload page</button>{' '}
+        <button className="btn" onClick={this.props.onBack}>Back to overview</button>
+      </div>
+    )
+  }
 }
 
 function LiveStrip({ live }) {

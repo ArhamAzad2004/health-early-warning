@@ -4,11 +4,13 @@ import { api, LEVELS, fmtDate } from './api.js'
 
 export default function AlertDetail({ role, alert, onBack }) {
   const [sig, setSig] = useState(null)
+  const [sigFailed, setSigFailed] = useState(false)
   const [meta, setMeta] = useState(null)
   const [sent, setSent] = useState({})
   useEffect(() => {
     let current = true  // ignore late answers for a previous alert or role
-    api('signals', { area_id: alert.area_id, role }).then(d => current && setSig(d)).catch(() => current && setSig(null))
+    setSig(null); setSigFailed(false)
+    api('signals', { area_id: alert.area_id, role }).then(d => current && setSig(d)).catch(() => { if (current) setSigFailed(true) })
     return () => { current = false }
   }, [alert, role])
   useEffect(() => { api('meta').then(setMeta).catch(() => {}) }, [])
@@ -69,6 +71,8 @@ export default function AlertDetail({ role, alert, onBack }) {
         )}
       </div>
 
+      {!sig && !sigFailed && <p className="muted">Loading charts…</p>}
+      {sigFailed && <p className="down" role="alert">Couldn't load the charts for this alert. Go back and open it again in a moment.</p>}
       {sig && (
         <section className="card">
           <h2>Fused risk score over time</h2>
@@ -78,7 +82,7 @@ export default function AlertDetail({ role, alert, onBack }) {
               <YAxis fontSize={12} width={32} />
               <Tooltip labelFormatter={fmtDate} />
               <ReferenceArea x1={alert.start} x2={alert.end} fill={lv.color} fillOpacity={0.12} />
-              {meta && Object.entries(meta.levels).map(([k, v]) => (
+              {meta && role === 'public_health' && Object.entries(meta.levels).map(([k, v]) => ( /* other roles see published risk, which can sit below the official level */
                 <ReferenceLine key={k} y={v} stroke={LEVELS[k].color} strokeDasharray="4 3" label={{ value: LEVELS[k].label, fontSize: 11, position: 'right' }} />
               ))}
               <Line dataKey="risk" stroke="#1B1F24" dot={false} strokeWidth={2} isAnimationActive={false} />

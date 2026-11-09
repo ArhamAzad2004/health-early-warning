@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import threading
 import time
 import urllib.request
 from datetime import date
@@ -47,17 +48,10 @@ async def security_headers(request, call_next):
 _started = time.monotonic()
 DATA = generate()
 SCORES, ALERTS = engine.run(DATA)
-BACKTEST = engine.backtest(DATA, ALERTS)
-BACKTEST_SITES = engine.backtest(DATA, ALERTS, scope=lambda a: AREAS[a]["type"] == "site")  # employer role
-for _s in BACKTEST_SITES["scenarios"]:  # full scenario names mention districts the employer role cannot see
-    _s["name"] = next(sc["short"] for sc in SCENARIOS if sc["id"] == _s["id"])
-STARTUP_SECONDS = round(time.monotonic() - _started, 1)
-BUILD = os.environ.get("RENDER_GIT_COMMIT", "dev")[:7]  # logged only: a public build id would tell attackers which fixes are live
-log.info("Generated %d areas, %d alerts and the back-test in %.1f s (build %s)",
-                                        len(AREAS), len(ALERTS), STARTUP_SECONDS, BUILD)
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
-LIVE_CACHE = []  # [fetched_at, result]; protects the free Open-Meteo quota once the demo is public
+LIVE_CACHE = []  # [fetched_at, result, ttl]; protects the free Open-Meteo quota once the demo is public
+LIVE_LOCK = threading.Lock()  # one upstream refresh at a time, so a burst can't tie up the worker threads
 Role = Query("public_health", pattern="^(public_health|employer_hse|public)$")
 ENV = {"heat_index", "aqi"}
 
@@ -81,11 +75,22 @@ def published(signal, values):
 
 # Derived numbers are recomputed from published values only, so no combination of numbers on
 # screen can reveal a hidden count: baselines and z-scores for every role; risk, peak risk and
-# contributions for the employer and public roles. The public health authority legitimately holds
+# contributions for the employer and public roles (who get no peak risk at all). The public health authority legitimately holds
 # the full data, so it keeps full-fidelity risk. Detection and alerts always use the full data.
 PUBLIC = {a: engine.score_area({s: published(s, v) for s, v in sc["series"].items()}) for a, sc in SCORES.items()}
 PUBLIC_Z = {a: zs for a, (zs, _) in PUBLIC.items()}
 PUBLIC_DAYS = {a: days for a, (_, days) in PUBLIC.items()}
+PUBLISHED_DATA = {a: {s: published(s, v) for s, v in series.items()} for a, series in DATA.items()}
+
+# Detection metrics use the full data; the impact estimate (counts) uses published values only.
+BACKTEST = engine.backtest(DATA, ALERTS, impact_data=PUBLISHED_DATA)
+BACKTEST_SITES = engine.backtest(DATA, ALERTS, scope=lambda a: AREAS[a]["type"] == "site", impact_data=PUBLISHED_DATA)  # employer role
+for _s in BACKTEST_SITES["scenarios"]:  # full scenario names mention districts the employer role cannot see
+    _s["name"] = next(sc["short"] for sc in SCENARIOS if sc["id"] == _s["id"])
+STARTUP_SECONDS = round(time.monotonic() - _started, 1)
+BUILD = os.environ.get("RENDER_GIT_COMMIT", "dev")[:7]  # logged only: a public build id would tell attackers which fixes are live
+log.info("Generated %d areas, %d alerts and the back-test in %.1f s (build %s)",
+         len(AREAS), len(ALERTS), STARTUP_SECONDS, BUILD)
 
 
 @app.get("/api/meta")
@@ -146,12 +151,14 @@ def hide_small(area_id, e):
 
 
 def public_alert(al):
-    """An alert as users see it: peak risk and contributions recomputed from published values."""
+    """An alert as employer and public users see it: contributions recomputed from published values."""
     days = PUBLIC_DAYS[al["area_id"]][DATE_INDEX[al["start"]]:DATE_INDEX[al["end"]] + 1]
     totals = {s: sum(d["contrib"][s] for d in days) for s in days[0]["contrib"]}
     total = sum(totals.values()) or 1
     shares = {s: round(v / total, 3) for s, v in sorted(totals.items(), key=lambda kv: -kv[1])}
-    return dict(al, peak_risk=max(d["risk"] for d in days), contributions=shares,
+    # No peak risk: the official level and advice are shared as issued, and a published peak below the level's
+    # threshold would show how much the hidden counts added.
+    return dict({k: v for k, v in al.items() if k != "peak_risk"}, contributions=shares,
                 evidence=[dict(hide_small(al["area_id"], e), share=shares[e["signal"]]) for e in al["evidence"]])
 
 
@@ -194,8 +201,16 @@ def backtest(role: str = Role):
 @app.get("/api/live")
 def live():
     """Current Dubai weather and air quality from Open-Meteo (free, no key), cached for 10 minutes."""
-    if LIVE_CACHE and time.monotonic() - LIVE_CACHE[0] < 600:
-        return LIVE_CACHE[1]
+    with LIVE_LOCK:
+        if LIVE_CACHE and time.monotonic() - LIVE_CACHE[0] < LIVE_CACHE[2]:
+            return LIVE_CACHE[1]
+        result, ttl = _fetch_live()
+        LIVE_CACHE[:] = [time.monotonic(), result, ttl]
+        return result
+
+
+def _fetch_live():
+    """(result, seconds to cache it): 10 minutes when fresh, 1 minute after a failure so retries stay cheap."""
     lat, lon = 25.2048, 55.2708
     urls = {
         "weather": f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
@@ -206,13 +221,12 @@ def live():
     try:
         got = {k: json.load(urllib.request.urlopen(u, timeout=6))["current"] for k, u in urls.items()}
     except Exception:  # noqa: BLE001 - any upstream failure (offline, timeout, bad JSON) falls back; the demo must still work
-        return dict(ok=False, error="unavailable", fetched=date.today().isoformat())
+        return dict(ok=False, error="unavailable", fetched=date.today().isoformat()), 60
     w, a = got["weather"], got["air"]
     result = dict(ok=True, time=w["time"], temperature=w["temperature_2m"], humidity=w["relative_humidity_2m"],
                 feels_like=w["apparent_temperature"], pm10=a.get("pm10"), pm2_5=a.get("pm2_5"),
                 us_aqi=a.get("us_aqi"), dust=a.get("dust"), source="Open-Meteo")
-    LIVE_CACHE[:] = [time.monotonic(), result]
-    return result
+    return result, 600
 
 
 # Serve the built dashboard from the same app, so one link runs the whole demo. Mounted last so /api wins.

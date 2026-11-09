@@ -162,7 +162,7 @@ def test_employer_and_public_risk_come_only_from_published_values():
             assert {r["area_id"]: r["risk"] for r in get("/api/risk", date="2025-07-23", role=role).json()}[area] == risk[83]
     for al in get("/api/alerts", role="employer_hse").json():
         rows = get("/api/signals", area_id=al["area_id"], role="employer_hse").json()["risk"]
-        assert al["peak_risk"] == max(r["risk"] for r in rows if al["start"] <= r["date"] <= al["end"])
+        assert rows and "peak_risk" not in al  # official level is shown; a lower published peak would reveal hidden counts
         assert all(e["share"] == al["contributions"][e["signal"]] for e in al["evidence"])
 
 
@@ -175,3 +175,28 @@ def test_authority_keeps_full_fidelity_risk():
 def test_employer_scenario_names_do_not_mention_districts():
     names = " ".join(s["name"] for s in get("/api/backtest", role="employer_hse").json()["scenarios"])
     assert not any(AREAS[d]["name"] in names for d in DISTRICTS)
+
+
+def test_impact_estimate_uses_published_values_and_hides_small_totals():
+    from app.engine import backtest
+    from app.main import ALERTS, DATA, PUBLISHED_DATA
+    for role in ("public_health", "employer_hse"):
+        impact = get("/api/backtest", role=role).json()["impact"]
+        for k in ("excess_absence_days", "excess_incidents"):
+            assert impact[k] is None or not 0 < impact[k] < 5
+    raw = backtest(DATA, ALERTS)["impact"]
+    assert get("/api/backtest", role="public_health").json()["impact"] == backtest(DATA, ALERTS, impact_data=PUBLISHED_DATA)["impact"]
+    assert raw["excess_incidents"] != get("/api/backtest", role="public_health").json()["impact"]["excess_incidents"]
+
+
+def test_live_failure_is_cached_so_a_burst_makes_one_upstream_call(monkeypatch):
+    calls = []
+
+    def down(*a, **k):
+        calls.append(1)
+        raise OSError("upstream down")
+    monkeypatch.setattr(main_module.urllib.request, "urlopen", down)
+    monkeypatch.setattr(main_module, "LIVE_CACHE", [])
+    for _ in range(5):
+        assert client.get("/api/live").json()["ok"] is False
+    assert len(calls) == 1

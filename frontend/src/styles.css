@@ -48,6 +48,9 @@ footer a { color: var(--accent); }
 .btn:hover { background: var(--accent-soft); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; min-width: 76px; }
 .btn.primary:hover { background: #085B5B; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled:hover { background: var(--surface); }
+.btn.primary:disabled:hover { background: var(--accent); }
 .btn.ghost { border: 0; background: none; color: var(--accent); padding: 4px 0; margin-bottom: 12px; }
 
 .overview { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); gap: 16px; }
