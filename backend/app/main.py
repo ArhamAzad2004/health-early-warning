@@ -93,11 +93,20 @@ log.info("Generated %d areas, %d alerts and the back-test in %.1f s (build %s)",
          len(AREAS), len(ALERTS), STARTUP_SECONDS, BUILD)
 
 
+# The day each scenario looks most alarming on the map (highest risk in its areas): what "Jump to" opens.
+# The harm peak itself comes later, when the alerts have already done their job and risk is easing.
+# Picked from published risk, because every role (public included) reads /api/meta.
+FOCUS = {sc["id"]: max((d for d in DATES if sc["start"] <= d <= sc["end"]),
+                       key=lambda d: max(PUBLIC_DAYS[a][DATE_INDEX[d.isoformat()]]["risk"] for a in sc["areas"])).isoformat()
+         for sc in SCENARIOS}
+
+
 @app.get("/api/meta")
 def meta():
     return dict(start=DATES[0].isoformat(), end=DATES[-1].isoformat(), signals=SIGNALS,
                 levels=dict(watch=engine.WATCH, warning=engine.WARNING, alert=engine.ALERT),
-                scenarios=[dict(id=s["id"], short=s["short"], peak=s["peak"].isoformat()) for s in SCENARIOS])  # no site names: public role reads this too
+                scenarios=[dict(id=s["id"], short=s["short"], peak=s["peak"].isoformat(), focus=FOCUS[s["id"]])
+                           for s in SCENARIOS])  # no site names: public role reads this too
 
 
 @app.get("/api/areas")

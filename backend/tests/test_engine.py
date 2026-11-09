@@ -75,3 +75,14 @@ def test_location_reliability_lowers_confidence_only():
 def test_unknown_location_stress_row():
     row = next(m for m in BACKTEST["missing_input"] if m["without"] == "unknown_location")
     assert row["sensitivity"] == 1.0 and row["mean_lead_time_days"] is not None
+
+
+def test_jump_days_show_each_outbreak_at_alert_level():
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    c = TestClient(app)
+    for sc in c.get("/api/meta").json()["scenarios"]:
+        assert sc["focus"] <= sc["peak"]
+        levels = {r["level"] for r in c.get("/api/risk", params={"date": sc["focus"]}).json()}
+        assert "alert" in levels, sc

@@ -99,8 +99,8 @@ export default function Overview({ role, date, setDate, onOpen }) {
           <div className="jumps">
             <span className="muted small">Jump to</span>
             {meta?.scenarios.map(s => (
-              <button key={s.id} className="btn" onClick={() => { setPlaying(false); setDate(s.peak) }}>
-                {s.short} · {fmtDate(s.peak)}
+              <button key={s.id} className="btn" onClick={() => { setPlaying(false); setDate(s.focus) }}>
+                {s.short} · {fmtDate(s.focus)}
               </button>
             ))}
           </div>
