@@ -41,7 +41,7 @@ export default function Validation({ role, roleName }) {
       <div className="tiles">
         <Tile label="Outbreaks detected" value={pct(b.sensitivity)} note={`${pct(b.area_sensitivity)} of affected areas`} />
         <Tile label="Mean lead time" value={`${b.mean_lead_time_days} days`} note="first alert → harm peak" />
-        <Tile label="Precision (PPV)" value={pct(b.ppv)} note={`${b.total_alerts} alerts in 5 months`} />
+        <Tile label="Precision (PPV)" value={pct(b.ppv)} note={`${b.total_alerts} alert${b.total_alerts === 1 ? '' : 's'} in 5 months`} />
         <Tile label="False alarms" value={b.false_alarms} note={`across ${areas.length || '–'} areas`} />
         <Tile label="Median data latency" value={`${b.median_latency_days} day${b.median_latency_days === 1 ? '' : 's'}`} note="per signal: see below" />
       </div>

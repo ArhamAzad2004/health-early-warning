@@ -81,7 +81,7 @@ export default function Overview({ role, date, setDate, onOpen }) {
                   <strong>{a.name}</strong> {a.type === 'site' ? '(work site)' : ''}<br />
                   {lv.label} · risk {r?.risk ?? '–'}
                   {latest[a.id] && <><br />Select to open its latest alert</>}
-                  {r?.missing?.length ? <><br />Missing today: {r.missing.join(', ')}</> : null}
+                  {r?.missing?.length ? <><br />Missing today: {r.missing.map(s => meta?.signals?.[s]?.label || s).join(', ')}</> : null}
                 </Tooltip>
               </CircleMarker>
             )

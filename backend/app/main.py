@@ -203,7 +203,12 @@ def live():
     """Current Dubai weather and air quality from Open-Meteo (free, no key), cached for 10 minutes."""
     if LIVE_CACHE and time.monotonic() - LIVE_CACHE[0] < LIVE_CACHE[2]:
         return LIVE_CACHE[1]
-    if not LIVE_LOCK.acquire(blocking=False):  # another request is refreshing: answer now instead of queueing
+    if not LIVE_LOCK.acquire(blocking=False):  # another request is refreshing
+        if LIVE_CACHE:
+            return LIVE_CACHE[1]  # answer with the last result instead of queueing
+        if not LIVE_LOCK.acquire(timeout=15):  # nothing cached yet (fresh start): wait for that first fetch
+            return dict(ok=False, error="unavailable", fetched=date.today().isoformat())
+        LIVE_LOCK.release()
         return LIVE_CACHE[1] if LIVE_CACHE else dict(ok=False, error="unavailable", fetched=date.today().isoformat())
     try:
         result, ttl = _fetch_live()
