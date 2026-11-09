@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { api } from './api.js'
 import Overview from './Overview.jsx'
-import AlertDetail from './AlertDetail.jsx'
+import Tour from './Tour.jsx'
 import Validation from './Validation.jsx'
 import Privacy from './Privacy.jsx'
+
+const AlertDetail = lazy(() => import('./AlertDetail.jsx'))  // charts (Recharts) load only when an alert is opened
+const TOUR_SEEN = 'sentinel-tour-seen'
 
 const ROLES = {
   public_health: 'District Public Health Officer',
@@ -25,7 +28,12 @@ export default function App() {
   const [live, setLive] = useState(null)
   const [notice, setNotice] = useState('')
   const [down, setDown] = useState(false)
+  const [tour, setTour] = useState(false)
   const noticeTimer = useRef()
+
+  useEffect(() => { try { if (!localStorage.getItem(TOUR_SEEN)) setTour(true) } catch { /* storage blocked: skip auto-start */ } }, [])
+  const closeTour = () => { setTour(false); try { localStorage.setItem(TOUR_SEEN, '1') } catch { /* ignore */ } }
+  const startTour = () => { setAlert(null); setPage('overview'); setTour(true) }
 
   const switchRole = r => {
     setRole(r)
@@ -46,24 +54,32 @@ export default function App() {
     .filter(([id]) => !(role === 'public' && id === 'validation'))
 
   return (
-    <div className="shell">
-      <header className="top">
-        <div className="brand">
-          <strong>Sentinel Dubai</strong>
-          <span className="muted">Population &amp; workforce health early warning</span>
+    <>
+      <header className="topbar">
+        <div className="top">
+          <div className="brand">
+            <strong>Sentinel Dubai</strong>
+            <span>Population &amp; workforce health early warning</span>
+          </div>
+          <nav>
+            {tabs.map(([id, label]) => (
+              <button key={id} data-tour={id} className={page === id ? 'tab on' : 'tab'} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>{label}</button>
+            ))}
+          </nav>
+          <label className="role">
+            Viewing as
+            <select value={role} onChange={e => switchRole(e.target.value)}>
+              {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </label>
         </div>
-        <nav>
-          {tabs.map(([id, label]) => (
-            <button key={id} className={page === id ? 'tab on' : 'tab'} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>{label}</button>
-          ))}
-        </nav>
-        <label className="role">
-          Viewing as
-          <select value={role} onChange={e => switchRole(e.target.value)}>
-            {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-        </label>
       </header>
+
+    <div className="shell">
+      <div className="lede">
+        <p>Replay summer 2025 in Dubai and watch alerts open days before heat and dust outbreaks peak.</p>
+        <button className="btn" data-tour-start onClick={startTour}>Take the tour</button>
+      </div>
 
       <p className="notice" role="status">{notice}</p>
 
@@ -80,15 +96,22 @@ export default function App() {
 
       <main>
         {page === 'overview' && <Overview role={role} date={date} setDate={setDate} onOpen={open} />}
-        {page === 'alert' && alert && <AlertDetail role={role} alert={alert} onBack={() => setPage('overview')} />}
+        {page === 'alert' && alert && (
+          <Suspense fallback={<p className="muted">Loading alert…</p>}>
+            <AlertDetail role={role} alert={alert} onBack={() => setPage('overview')} />
+          </Suspense>
+        )}
         {page === 'validation' && <Validation role={role} roleName={ROLES[role]} />}
         {page === 'privacy' && <Privacy roles={ROLES} />}
       </main>
 
       <footer className="muted small">
-        Synthetic data · <a href="https://github.com/ArhamAzad2004/health-early-warning">source on GitHub</a>
+        Independent portfolio project with simulated health data. Not affiliated with or endorsed by Dubai Health Authority.{' '}
+        <a href="https://github.com/ArhamAzad2004/health-early-warning">Source on GitHub</a>
       </footer>
     </div>
+    {tour && <Tour role={role} onClose={closeTour} />}
+    </>
   )
 }
 

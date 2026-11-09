@@ -37,7 +37,9 @@ Short single-column text panel with headed sections; no charts.
 
 ## 4. Colour
 
-Base: near-white background `#F7F8FA`, surface `#FFFFFF`, text `#1B1F24`, muted text `#5C6470`, borders `#E1E4E8`. One accent for interactive elements: `#2457C5`.
+Base: a calm health palette inspired by Dubai's public-health look (no official logo, name or exact brand colours; the footer states the project is not affiliated with Dubai Health Authority). Deep gulf teal `#0B3D3A` for the header band, lagoon teal `#0A6E6E` for buttons, links and focus, soft teal `#E3F1EF` for highlights; background `#F3F7F6`, surface `#FFFFFF`, text `#17262A`, muted text `#55676A`, borders `#D9E3E1`. The base map is greyscale so only the risk circles carry colour.
+
+First visit: a five-step guided tour (map, replay, alerts, role switcher, Validation) starts once and can be restarted with "Take the tour". It is keyboard-operable (Esc closes), respects reduced motion, and remembers completion in browser storage only.
 
 Risk levels (the API's `level` values) use the Okabe–Ito colour-blind-safe set, and every use carries the level word as text:
 
