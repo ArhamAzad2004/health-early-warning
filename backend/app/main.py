@@ -35,12 +35,17 @@ async def security_headers(request, call_next):
     response.headers.update(SECURITY_HEADERS)
     return response
 
+_started = time.monotonic()
 DATA = generate()
 SCORES, ALERTS = engine.run(DATA)
 BACKTEST = engine.backtest(DATA, ALERTS)
 BACKTEST_SITES = engine.backtest(DATA, ALERTS, scope=lambda a: AREAS[a]["type"] == "site")  # employer role
 for _s in BACKTEST_SITES["scenarios"]:  # full scenario names mention districts the employer role cannot see
     _s["name"] = next(sc["short"] for sc in SCENARIOS if sc["id"] == _s["id"])
+STARTUP_SECONDS = round(time.monotonic() - _started, 1)
+BUILD = os.environ.get("RENDER_GIT_COMMIT", "dev")[:7]  # Render sets this to the deployed commit
+logging.getLogger("uvicorn.error").info("Generated %d areas, %d alerts and the back-test in %.1f s (build %s)",
+                                        len(AREAS), len(ALERTS), STARTUP_SECONDS, BUILD)
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
 LIVE_CACHE = []  # [fetched_at, result]; protects the free Open-Meteo quota once the demo is public
@@ -78,7 +83,8 @@ PUBLIC_DAYS = {a: days for a, (_, days) in PUBLIC.items()}
 def meta():
     return dict(start=DATES[0].isoformat(), end=DATES[-1].isoformat(), signals=SIGNALS,
                 levels=dict(watch=engine.WATCH, warning=engine.WARNING, alert=engine.ALERT),
-                scenarios=[dict(id=s["id"], short=s["short"], peak=s["peak"].isoformat()) for s in SCENARIOS])  # no site names: public role reads this too
+                scenarios=[dict(id=s["id"], short=s["short"], peak=s["peak"].isoformat()) for s in SCENARIOS],  # no site names: public role reads this too
+                build=BUILD, startup_seconds=STARTUP_SECONDS)
 
 
 @app.get("/api/areas")

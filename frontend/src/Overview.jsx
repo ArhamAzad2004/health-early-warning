@@ -11,17 +11,17 @@ export default function Overview({ role, date, setDate, onOpen }) {
   const [playing, setPlaying] = useState(false)
   const timer = useRef()
 
-  useEffect(() => { api('meta').then(setMeta) }, [])
+  useEffect(() => { api('meta').then(setMeta).catch(() => {}) }, [])
   useEffect(() => {
     let current = true  // ignore late answers for a role the user has already switched away from
     setAreas([]); setAlerts([]); setRisk([]); setNotes([])
-    api('areas', { role }).then(d => current && setAreas(d))
-    api('alerts', { role }).then(d => current && setAlerts(d))
+    api('areas', { role }).then(d => current && setAreas(d)).catch(() => {})
+    api('alerts', { role }).then(d => current && setAlerts(d)).catch(() => {})
     return () => { current = false }
   }, [role])
   useEffect(() => {
     let current = true
-    api('risk', { date, role }).then(d => current && setRisk(d))
+    api('risk', { date, role }).then(d => current && setRisk(d)).catch(() => {})
     if (role === 'public') setNotes([])
     else api('notifications', { date, role }).then(d => current && setNotes(d)).catch(() => current && setNotes([]))
     return () => { current = false }
