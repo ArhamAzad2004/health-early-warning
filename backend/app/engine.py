@@ -217,9 +217,10 @@ def backtest(data, alerts, scope=lambda area_id: True):
         base["missing_input"].append(dict(without=s, label=SIGNALS[s]["label"], **{
             k: m[k] for k in ("sensitivity", "area_sensitivity", "ppv", "false_alarms", "mean_lead_time_days")}))
     # Stress test: a quarter of health/work records cannot be placed in an area (unknown location).
-    rng = random.Random(7)
-    thinned = {a: {s: [None if v is None else sum(rng.random() >= UNKNOWN_LOCATION_STRESS for _ in range(v)) for v in ser]
-                   if SIGNALS[s]["count"] else ser for s, ser in sig.items()} for a, sig in data.items()}
+    def thin(a, s, ser):  # own seed per series, so one area's drops never depend on another's counts
+        rng = random.Random(f"{a}:{s}")
+        return [None if v is None else sum(rng.random() >= UNKNOWN_LOCATION_STRESS for _ in range(v)) for v in ser]
+    thinned = {a: {s: thin(a, s, ser) if SIGNALS[s]["count"] else ser for s, ser in sig.items()} for a, sig in data.items()}
     m = metrics(run(thinned)[1])
     base["missing_input"].append(dict(without="unknown_location", label=f"{int(UNKNOWN_LOCATION_STRESS * 100)}% of records with unknown location", **{
         k: m[k] for k in ("sensitivity", "area_sensitivity", "ppv", "false_alarms", "mean_lead_time_days")}))
