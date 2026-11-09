@@ -24,7 +24,6 @@ export default function App() {
   const [date, setDate] = useState('2025-07-20')
   const [live, setLive] = useState(null)
   const [notice, setNotice] = useState('')
-  const [meta, setMeta] = useState(null)
   const [down, setDown] = useState(false)
   const noticeTimer = useRef()
 
@@ -36,7 +35,7 @@ export default function App() {
   }
 
   useEffect(() => { api('live').then(setLive).catch(() => setLive({ ok: false })) }, [])
-  useEffect(() => { api('meta').then(setMeta).catch(() => setDown(true)) }, [])
+  useEffect(() => { api('meta').catch(() => setDown(true)) }, [])
   useEffect(() => {
     setAlert(null)
     if (page === 'alert' || (role === 'public' && page === 'validation')) setPage('overview')
@@ -82,13 +81,12 @@ export default function App() {
       <main>
         {page === 'overview' && <Overview role={role} date={date} setDate={setDate} onOpen={open} />}
         {page === 'alert' && alert && <AlertDetail role={role} alert={alert} onBack={() => setPage('overview')} />}
-        {page === 'validation' && <Validation role={role} />}
+        {page === 'validation' && <Validation role={role} roleName={ROLES[role]} />}
         {page === 'privacy' && <Privacy roles={ROLES} />}
       </main>
 
       <footer className="muted small">
         Synthetic data · <a href="https://github.com/ArhamAzad2004/health-early-warning">source on GitHub</a>
-        {meta?.build && <> · build <span className="mono">{meta.build}</span></>}
       </footer>
     </div>
   )

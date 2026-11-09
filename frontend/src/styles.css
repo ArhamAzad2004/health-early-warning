@@ -81,6 +81,15 @@ tr.chosen td { background: #EEF3FC; font-weight: 500; }
 .tile-value { font-size: 26px; font-weight: 600; }
 .privacy li { margin-bottom: 8px; line-height: 1.5; }
 
+.validation-head { display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; }
+.export { display: flex; gap: 8px; }
+
+@media print {
+  .top nav, .role, .live, .notice, .no-print { display: none !important; }
+  body, .card, .tile { background: #fff; box-shadow: none; }
+  .card, .tile { break-inside: avoid; }
+}
+
 @media (max-width: 860px) {
   .overview { grid-template-columns: 1fr; }
   .map { height: 340px; }
