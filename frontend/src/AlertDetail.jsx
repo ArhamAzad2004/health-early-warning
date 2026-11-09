@@ -11,7 +11,7 @@ export default function AlertDetail({ role, alert, onBack }) {
     api('signals', { area_id: alert.area_id, role }).then(d => current && setSig(d)).catch(() => current && setSig(null))
     return () => { current = false }
   }, [alert, role])
-  useEffect(() => { api('meta').then(setMeta) }, [])
+  useEffect(() => { api('meta').then(setMeta).catch(() => {}) }, [])
   useEffect(() => {
     if (role === 'public') return
     let current = true
@@ -95,19 +95,20 @@ export default function AlertDetail({ role, alert, onBack }) {
               <div key={s}>
                 <h3>{meta?.signals[s]?.label || s} <span className="muted small">· reported after {meta?.signals[s]?.latency ?? '?'} d</span></h3>
                 <ResponsiveContainer width="100%" height={130}>
-                  <ComposedChart data={inView(sig.signals[s])} margin={{ left: 0, right: 8, top: 4 }}>
+                  <ComposedChart data={inView(sig.signals[s]).map(r => ({ ...r, hidden: r.suppressed ? 0 : null }))} margin={{ left: 0, right: 8, top: 4 }}>
                     <XAxis dataKey="date" tickFormatter={fmtDate} fontSize={11} minTickGap={30} />
                     <YAxis fontSize={11} width={32} />
-                    <Tooltip labelFormatter={fmtDate} formatter={(v, n) => [v ?? 'missing / <5', n]} />
+                    <Tooltip labelFormatter={fmtDate} formatter={(v, n, item) => n === 'hidden' ? ['<5 (hidden)', 'observed'] : [v ?? (item.payload.suppressed ? '<5 (hidden)' : 'missing'), n]} />
                     <ReferenceArea x1={alert.start} x2={alert.end} fill={lv.color} fillOpacity={0.12} />
                     <Area dataKey="baseline" stroke="none" fill="#E1E4E8" isAnimationActive={false} name="baseline" />
                     <Line dataKey="value" stroke="#2457C5" dot={false} connectNulls={false} strokeWidth={1.8} isAnimationActive={false} name="observed" />
+                    <Line dataKey="hidden" stroke="none" dot={{ r: 2, fill: '#5C6470', stroke: 'none' }} activeDot={false} isAnimationActive={false} name="hidden" />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
             ))}
           </div>
-          <p className="muted small">Grey area = 28-day baseline. Gaps = missing data or suppressed small counts (&lt;5).</p>
+          <p className="muted small">Grey area = 28-day baseline. Grey dots on the axis = small counts hidden for privacy (&lt;5). Gaps without a dot = missing data.</p>
         </section>
       )}
 
@@ -116,6 +117,7 @@ export default function AlertDetail({ role, alert, onBack }) {
           <section className="card">
             <h2>Evidence</h2>
             <table>
+          <caption className="sr-only">Evidence: observed value against baseline for each signal</caption>
               <thead><tr><th>Signal</th><th>Day</th><th>Observed</th><th>Baseline</th><th>z</th></tr></thead>
               <tbody>
                 {alert.evidence.map(e => (

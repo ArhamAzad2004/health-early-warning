@@ -12,7 +12,7 @@ export default function Validation({ role, roleName }) {
   useEffect(() => {
     let current = true  // ignore late answers for a previous role
     setB(null); setAlerts([])  // never export one role's back-test with another role's alerts
-    api('backtest', { role }).then(d => current && setB(d))
+    api('backtest', { role }).then(d => current && setB(d)).catch(() => {})
     api('areas', { role }).then(d => current && setAreas(d)).catch(() => current && setAreas([]))
     api('alerts', { role }).then(d => current && setAlerts(d)).catch(() => current && setAlerts([]))
     return () => { current = false }
@@ -39,6 +39,7 @@ export default function Validation({ role, roleName }) {
       <section className="card">
         <h2>Scenarios</h2>
         <table>
+            <caption className="sr-only">Scenarios: first alert, harm peak and lead time</caption>
           <thead><tr><th>Scenario</th><th>First alert</th><th>Harm peak</th><th>Lead time</th><th>Areas flagged</th></tr></thead>
           <tbody>{b.scenarios.map(s => (
             <tr key={s.id}>
@@ -57,6 +58,7 @@ export default function Validation({ role, roleName }) {
           <h2>Calibration: picking the threshold</h2>
           <p className="muted small">Lower thresholds alert sooner but cry wolf. We chose {CHOSEN}: same detection, one false alarm.</p>
           <table>
+            <caption className="sr-only">Alert threshold calibration</caption>
             <thead><tr><th>Threshold</th><th>Detected</th><th>PPV</th><th>False alarms</th><th>Lead</th></tr></thead>
             <tbody>{b.calibration.map(c => (
               <tr key={c.threshold} className={c.threshold === CHOSEN ? 'chosen' : ''}>
@@ -69,6 +71,7 @@ export default function Validation({ role, roleName }) {
           <h2>When an input goes missing</h2>
           <p className="muted small">Re-run with one data feed switched off. Compare each row with "All feeds" to see how much that feed matters.</p>
           <table>
+            <caption className="sr-only">Detection with one data feed switched off</caption>
             <thead><tr><th>Without</th><th>Detected</th><th>PPV</th><th>False alarms</th><th>Lead</th></tr></thead>
             <tbody>
               <tr className="chosen"><td>All feeds</td><td>{pct(b.sensitivity)}</td><td>{pct(b.ppv)}</td><td>{b.false_alarms}</td><td>{b.mean_lead_time_days} d</td></tr>

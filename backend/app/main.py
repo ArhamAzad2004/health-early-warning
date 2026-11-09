@@ -36,12 +36,17 @@ async def security_headers(request, call_next):
     response.headers.update(SECURITY_HEADERS)
     return response
 
+_started = time.monotonic()
 DATA = generate()
 SCORES, ALERTS = engine.run(DATA)
 BACKTEST = engine.backtest(DATA, ALERTS)
 BACKTEST_SITES = engine.backtest(DATA, ALERTS, scope=lambda a: AREAS[a]["type"] == "site")  # employer role
 for _s in BACKTEST_SITES["scenarios"]:  # full scenario names mention districts the employer role cannot see
     _s["name"] = next(sc["short"] for sc in SCENARIOS if sc["id"] == _s["id"])
+STARTUP_SECONDS = round(time.monotonic() - _started, 1)
+BUILD = os.environ.get("RENDER_GIT_COMMIT", "dev")[:7]  # logged only: a public build id would tell attackers which fixes are live
+logging.getLogger("uvicorn.error").info("Generated %d areas, %d alerts and the back-test in %.1f s (build %s)",
+                                        len(AREAS), len(ALERTS), STARTUP_SECONDS, BUILD)
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
 LIVE_CACHE = []  # [fetched_at, result]; protects the free Open-Meteo quota once the demo is public

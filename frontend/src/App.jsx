@@ -24,6 +24,7 @@ export default function App() {
   const [date, setDate] = useState('2025-07-20')
   const [live, setLive] = useState(null)
   const [notice, setNotice] = useState('')
+  const [down, setDown] = useState(false)
   const noticeTimer = useRef()
 
   const switchRole = r => {
@@ -34,6 +35,7 @@ export default function App() {
   }
 
   useEffect(() => { api('live').then(setLive).catch(() => setLive({ ok: false })) }, [])
+  useEffect(() => { api('meta').catch(() => setDown(true)) }, [])
   useEffect(() => {
     setAlert(null)
     if (page === 'alert' || (role === 'public' && page === 'validation')) setPage('overview')
@@ -72,12 +74,20 @@ export default function App() {
 
       <LiveStrip live={live} />
 
+      {down && (
+        <p className="down" role="alert">Can't reach the data service. Running locally? Start it with <code>npm run dev</code> and reload.</p>
+      )}
+
       <main>
         {page === 'overview' && <Overview role={role} date={date} setDate={setDate} onOpen={open} />}
         {page === 'alert' && alert && <AlertDetail role={role} alert={alert} onBack={() => setPage('overview')} />}
         {page === 'validation' && <Validation role={role} roleName={ROLES[role]} />}
         {page === 'privacy' && <Privacy roles={ROLES} />}
       </main>
+
+      <footer className="muted small">
+        Synthetic data · <a href="https://github.com/ArhamAzad2004/health-early-warning">source on GitHub</a>
+      </footer>
     </div>
   )
 }
