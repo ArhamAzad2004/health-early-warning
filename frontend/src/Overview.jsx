@@ -7,13 +7,14 @@ export default function Overview({ role, date, setDate, onOpen }) {
   const [areas, setAreas] = useState([])
   const [alerts, setAlerts] = useState([])
   const [risk, setRisk] = useState([])
+  const [notes, setNotes] = useState([])
   const [playing, setPlaying] = useState(false)
   const timer = useRef()
 
   useEffect(() => { api('meta').then(setMeta) }, [])
   useEffect(() => {
     let current = true  // ignore late answers for a role the user has already switched away from
-    setAreas([]); setAlerts([]); setRisk([])
+    setAreas([]); setAlerts([]); setRisk([]); setNotes([])
     api('areas', { role }).then(d => current && setAreas(d))
     api('alerts', { role }).then(d => current && setAlerts(d))
     return () => { current = false }
@@ -21,6 +22,8 @@ export default function Overview({ role, date, setDate, onOpen }) {
   useEffect(() => {
     let current = true
     api('risk', { date, role }).then(d => current && setRisk(d))
+    if (role === 'public') setNotes([])
+    else api('notifications', { date, role }).then(d => current && setNotes(d)).catch(() => current && setNotes([]))
     return () => { current = false }
   }, [date, role])
 
@@ -109,6 +112,20 @@ export default function Overview({ role, date, setDate, onOpen }) {
             </button>
           )
         })}
+        {role !== 'public' && (
+          <>
+            <h2 className="notes-head">Notifications sent <span className="muted">({notes.length})</span></h2>
+            {notes.length === 0 && <p className="muted small">Each responsible role is notified the day an alert opens.</p>}
+            <ul className="notes">
+              {[...notes].reverse().map(n => (
+                <li key={n.id}>
+                  <span className="mono small">{fmtDate(n.date)}</span>
+                  <span><strong>{n.to}</strong> · {n.area} <span className="muted">({LEVELS[n.level].label.toLowerCase()}, {n.category})</span></span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </section>
     </div>
   )

@@ -153,6 +153,23 @@ def alerts(role: str = Role):
     return out
 
 
+# One notification per responsible role when an alert opens. Built only from alert metadata
+# (area, dates, level, action), so it carries no counts and needs no extra privacy handling.
+NOTIFICATIONS = [dict(id=f"{al['id']}-{i}", alert_id=al["id"], area_id=al["area_id"], area=al["area"], date=al["start"],
+                      to=to, level=al["level"], category=al["category"], action=al["action"])
+                 for al in ALERTS for i, to in enumerate(al["roles"])]
+
+
+@app.get("/api/notifications")
+def notifications(role: str = Role, date: str | None = None):
+    """Who was told what, and when, up to an optional replay date."""
+    if role == "public":
+        raise HTTPException(403, "Notifications are for public health and employer roles")
+    if date is not None and date not in DATE_INDEX:
+        raise HTTPException(400, f"date must be between {DATES[0]} and {DATES[-1]}")
+    return [n for n in NOTIFICATIONS if visible(role, n["area_id"]) and (date is None or n["date"] <= date)]
+
+
 @app.get("/api/backtest")
 def backtest(role: str = Role):
     if role == "public":

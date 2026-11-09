@@ -5,12 +5,20 @@ import { api, LEVELS, fmtDate } from './api.js'
 export default function AlertDetail({ role, alert, onBack }) {
   const [sig, setSig] = useState(null)
   const [meta, setMeta] = useState(null)
+  const [sent, setSent] = useState({})
   useEffect(() => {
     let current = true  // ignore late answers for a previous alert or role
     api('signals', { area_id: alert.area_id, role }).then(d => current && setSig(d)).catch(() => current && setSig(null))
     return () => { current = false }
   }, [alert, role])
   useEffect(() => { api('meta').then(setMeta) }, [])
+  useEffect(() => {
+    if (role === 'public') return
+    let current = true
+    api('notifications', { role }).then(d => current && setSent(Object.fromEntries(d.filter(n => n.alert_id === alert.id).map(n => [n.to, n.date]))))
+      .catch(() => {})
+    return () => { current = false }
+  }, [alert, role])
 
   const lv = LEVELS[alert.level]
   // Zoom the charts to three weeks either side of the alert.
@@ -36,7 +44,7 @@ export default function AlertDetail({ role, alert, onBack }) {
           <p className="action-text">{alert.action}</p>
           {alert.roles && <>
             <h3>Responsible</h3>
-            <ul>{alert.roles.map(r => <li key={r}>{r}</li>)}</ul>
+            <ul>{alert.roles.map(r => <li key={r}>{r}{sent[r] && <span className="muted small"> · notified {fmtDate(sent[r])}</span>}</li>)}</ul>
           </>}
           {alert.completeness != null && (
             <p className="small">Data completeness <strong>{Math.round(alert.completeness * 100)}%</strong>
