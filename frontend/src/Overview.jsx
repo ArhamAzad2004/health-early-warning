@@ -12,6 +12,7 @@ export default function Overview({ role, date, setDate, onOpen }) {
 
   useEffect(() => { api('meta').then(setMeta) }, [])
   useEffect(() => {
+    setAreas([]); setAlerts([]); setRisk([])  // never show the previous role's data while the new role loads
     api('areas', { role }).then(setAreas)
     api('alerts', { role }).then(setAlerts)
   }, [role])
