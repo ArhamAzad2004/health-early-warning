@@ -14,6 +14,7 @@ export default function Privacy({ roles }) {
       <section className="card">
         <h2>Who sees what</h2>
         <table>
+          <caption className="sr-only">What each role can see</caption>
           <thead><tr><th>Role</th><th>Districts</th><th>Work sites</th><th>Health counts</th><th>Validation</th></tr></thead>
           <tbody>
             <tr><td>{roles.public_health}</td><td>All</td><td>All (aggregated)</td><td>Yes, suppressed &lt;5</td><td>Yes</td></tr>
