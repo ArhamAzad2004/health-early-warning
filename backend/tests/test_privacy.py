@@ -102,7 +102,7 @@ def test_security_headers_on_every_response(path):
     headers = client.get(path).headers
     assert headers["x-content-type-options"] == "nosniff"
     assert headers["x-frame-options"] == "DENY"
-    assert headers["referrer-policy"] == "no-referrer"
+    assert headers["referrer-policy"] == "strict-origin-when-cross-origin"  # origin only; OSM tiles need it
 
 
 @pytest.mark.parametrize("role", ROLES)

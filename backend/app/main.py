@@ -19,7 +19,8 @@ app = FastAPI(title="Sentinel Dubai – health early warning")
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
-    "Referrer-Policy": "no-referrer",
+    # Send only our origin cross-site (never paths): OpenStreetMap blocks map tiles requested without a Referer.
+    "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
     "Strict-Transport-Security": "max-age=31536000",
 }
