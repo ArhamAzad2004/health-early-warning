@@ -1,5 +1,6 @@
 # Exact runtime packages for the Docker image (Linux), installed with --require-hashes.
-# Regenerate when requirements.txt changes; CI fails the Docker build if anything is missing.
+# Regenerate with scripts/lock_requirements.py when requirements.txt changes (see its docstring);
+# a backend test fails if this file drifts, and the CI Docker build fails if anything is missing.
 
 annotated-doc==0.0.5 \
     --hash=sha256:117bac03a25ede5df5440e855b32d556049ca169ead221505badf432fed4b101 \

@@ -10,7 +10,7 @@ RUN npm run build
 FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90
 WORKDIR /app
 COPY backend/requirements-lock.txt .
-RUN pip install --no-cache-dir --require-hashes -r requirements-lock.txt
+RUN pip install --no-cache-dir --require-hashes --only-binary=:all: -r requirements-lock.txt
 COPY backend/ ./
 COPY --from=web /web/dist ./static
 ENV STATIC_DIR=/app/static API_DOCS=0
