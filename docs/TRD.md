@@ -65,7 +65,7 @@ For each area and signal, every day we ask "is today unusually high compared wit
 10. **Contributions.** `share_s = Σ_window (w_s · ew_s) / Σ_window risk`, sorted descending. Evidence is produced for every signal with share ≥ 5 %: the latency-adjusted day inside the window with the highest z, giving `value`, `baseline`, `z`.
 11. **Completeness and confidence.** `completeness = 1 − missing cells / (days × signals)` over the window. `high` ≥ 0.90, `medium` ≥ 0.75, else `low`.
 
-Why this and not a model: it is explainable line by line, has no training set to overfit, and judges can check the arithmetic against the numbers on screen. The whole engine is plain Python with the `statistics` module — no NumPy.
+Why this and not a model: it is explainable line by line, has no training set to overfit, and anyone can check the arithmetic against the numbers on screen. The whole engine is plain Python with the `statistics` module — no NumPy.
 
 ## 5. Decision support (playbook)
 

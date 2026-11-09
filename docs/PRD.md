@@ -1,6 +1,6 @@
 # Sentinel Dubai — Product Requirements (PRD)
 
-Hackathon entry for the "Population and Workforce Health Early Warning" challenge.
+Portfolio project addressing the "Population and Workforce Health Early Warning" problem.
 Repo: `health-early-warning`. Stack: Python FastAPI + React (Vite). Data: fully simulated health/work data, plus live Dubai weather and air quality from Open-Meteo.
 
 ## 1. Problem
@@ -30,9 +30,9 @@ Sentinel Dubai is an early-warning console that fuses population, environmental,
 2. Every alert explains itself: which signals, which area, which days, how much each contributed.
 3. Every alert carries a proportionate action, named responsible roles, evidence and assumptions.
 4. Privacy by default: aggregated counts only, small cells suppressed, role-based views, visible boundary against employment or disciplinary use.
-5. Validation page a judge can read in one minute: lead time, sensitivity, PPV, false alarms, latency, missing-input re-runs, calibration sweep, impact estimate.
+5. Validation page anyone can read in one minute: lead time, sensitivity, PPV, false alarms, latency, missing-input re-runs, calibration sweep, impact estimate.
 
-## 5. Non-goals (for the hackathon)
+## 5. Non-goals (v1)
 
 - No real patient or employee data; no database; no login (role switcher instead).
 - No causal claims. Alerts say "signals rose together", not "X caused Y".
@@ -52,9 +52,9 @@ Sentinel Dubai is an early-warning console that fuses population, environmental,
 - **F9 Privacy & roles** — aggregated counts, "<5" suppression, role switcher (`public_health`, `employer_hse`, `public`), boundary banner, governance panel.
 - **F10 Validation page** — back-test metrics, lead time per scenario, five missing-input re-runs, calibration sweep, impact estimate with assumptions.
 
-## 7. How this wins — judging requirements mapped to demo moments
+## 7. Requirements coverage — each requirement mapped to where it shows
 
-| # | Requirement | Where the judge sees it |
+| # | Requirement | Where it shows |
 |---|---|---|
 | 1 | Multi-signal surveillance (≥2 materially different signal types) | S1 produces alerts at Site A (occupational incidents, administrative absence, environmental heat index) and in Jebel Ali district (clinical heat-illness visits, heat index): four materially different signal types in one event. |
 | 2 | Explainable anomaly detection | Contribution shares per signal over the alert window, plus an evidence row per signal: the day, observed value, baseline and z. The area and start/end dates are on the card. |
@@ -73,7 +73,7 @@ Sentinel Dubai is an early-warning console that fuses population, environmental,
 6. **(3:15) Prove.** Validation page: lead time 5 and 3 days, sensitivity 1.0, PPV 0.8, 1 false alarm, Site B missed. Missing-input table: how lead time and false alarms move without `incidents` or `aqi`. Calibration sweep shows why watch = 4.5.
 7. **(3:50) Impact and close.** Impact estimate with its assumptions on screen. "Earlier, explainable, proportionate, private. Built on open tools, ready for real feeds."
 
-## 9. Success metrics (demo day) and current result
+## 9. Success metrics (v1.0) and current result
 
 - Both scenarios detected with lead time ≥ 2 days — **current: S1 5 days, S2 3 days.**
 - False alarms ≤ 3 across the window — **current: 1.** PPV ≥ 0.7 — **current: 0.8.**
@@ -87,10 +87,10 @@ Sentinel Dubai is an early-warning console that fuses population, environmental,
 |---|---|
 | Scenarios too obvious → looks staged | Poisson noise, missing gaps and a feed outage are in the data; false alarm and the missed Site B area are shown honestly. |
 | Threshold tuned to the demo only | Calibration sweep and five missing-input re-runs on the Validation page; weights and thresholds printed in every alert's assumptions. |
-| Open-Meteo offline during pitch | `/api/live` returns `ok: false`; UI shows "Live feed unavailable" and nothing else breaks. |
-| Judges ask "is it real?" | Say up front: synthetic health/work data, real weather; schema designed for real feeds. |
+| Open-Meteo offline during a demo | `/api/live` returns `ok: false`; UI shows "Live feed unavailable" and nothing else breaks. |
+| Viewers ask "is it real?" | Say up front: synthetic health/work data, real weather; schema designed for real feeds. |
 | Alert fatigue critique | Persistence rule, corroboration rule, three severity levels, false-alarm count on screen. |
 
-## 11. Stretch goals (after the core demo works)
+## 11. Future work
 
 Claude-written alert briefings (plain-language paragraph per alert); real open-data baselines replacing synthetic districts; Postgres persistence; real authentication and a dedicated regulator role replacing the role switcher.
