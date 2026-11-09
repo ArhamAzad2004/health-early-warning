@@ -56,10 +56,11 @@ the back-test once; requests only read, filter by role and suppress small counts
 |---|---|
 | 1. Multi-signal surveillance | 7 signals of 5 kinds (service, lab, workplace, occupational, environmental) on the map |
 | 2. Explainable detection | Alert page: contribution bars, risk timeline, each signal against its own baseline |
-| 3. Decision support | Alert page: recommended action, responsible roles, evidence table, assumptions |
+| 3. Decision support | Alert page: recommended action, responsible roles, evidence table, assumptions; Overview: notifications sent to each role as alerts open |
 | 4. Privacy | Banner, `<5` suppression, role switcher (public health / employer HSE / public) |
-| 5. Validation | Validation tab: lead time, detection, PPV, false alarms, latency, threshold calibration, missing-feed test |
+| 5. Validation | Validation tab: lead time, detection, PPV, false alarms, latency, threshold calibration, missing-feed and unknown-location stress tests |
 | 6. Impact | Validation tab: estimated lost workdays and incidents avoided, with stated assumptions |
+| 7. Regulator summary | Validation tab: **Download CSV** or **Print summary** (aggregated, small counts hidden) |
 
 Current back-test: both outbreaks caught **3–5 days before their harm peak**, PPV 80%, 1 false alarm in 5 months across 11 areas. GBC Site B was missed in the dust-storm scenario — **accepted known limit**, surfaced on the Validation page.
 
