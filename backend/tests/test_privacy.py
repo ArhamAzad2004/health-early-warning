@@ -200,3 +200,22 @@ def test_live_failure_is_cached_so_a_burst_makes_one_upstream_call(monkeypatch):
     for _ in range(5):
         assert client.get("/api/live").json()["ok"] is False
     assert len(calls) == 1
+
+
+def test_live_requests_during_the_first_fetch_wait_for_it(monkeypatch):
+    import threading
+    import time as t
+    started = threading.Event()
+
+    def slow(url, timeout):
+        started.set()
+        t.sleep(0.5)
+        raise OSError("slow upstream")
+    monkeypatch.setattr(main_module.urllib.request, "urlopen", slow)
+    monkeypatch.setattr(main_module, "LIVE_CACHE", [])
+    first = threading.Thread(target=main_module.live)
+    first.start()
+    started.wait()
+    second = main_module.live()  # arrives mid-fetch with nothing cached: must get the first fetch's result
+    first.join()
+    assert second is main_module.LIVE_CACHE[1]
