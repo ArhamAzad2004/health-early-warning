@@ -103,6 +103,15 @@ def test_security_headers_on_every_response(path):
     assert headers["x-content-type-options"] == "nosniff"
     assert headers["x-frame-options"] == "DENY"
     assert headers["referrer-policy"] == "strict-origin-when-cross-origin"  # origin only; OSM tiles need it
+    csp = headers["content-security-policy"]
+    assert "script-src 'self';" in csp and "unsafe" not in csp and "frame-ancestors 'none'" in csp
+
+
+@pytest.mark.parametrize("path", ["/docs", "/redoc"])
+def test_api_docs_still_load_their_cdn_assets(path):
+    r = client.get(path)
+    assert r.status_code == 200 and "content-security-policy" not in r.headers
+    assert r.headers["x-frame-options"] == "DENY"
 
 
 @pytest.mark.parametrize("role", ROLES)

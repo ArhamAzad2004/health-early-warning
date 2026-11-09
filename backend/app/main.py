@@ -23,18 +23,25 @@ SECURITY_HEADERS = {
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
     "Strict-Transport-Security": "max-age=31536000",
+    # Only our own scripts run; the outside hosts are Google Fonts and the OSM map tiles.
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; "
+        "style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; "
+        "img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self'; "
+        "object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
 }
+API_DOCS = {"/docs", "/redoc"}  # FastAPI's docs pages load Swagger/ReDoc from a CDN with inline scripts, so they skip the CSP
 
 
 @app.middleware("http")
 async def security_headers(request, call_next):
-    # shortcut: no Content-Security-Policy yet; Google Fonts, map tiles and Vite's inline styles need an allow-list
     try:
         response = await call_next(request)
     except Exception:  # a crash must still get the headers and a generic body, never a traceback
         log.exception("Unhandled error on %s", request.url.path)
         response = JSONResponse({"detail": "Internal server error"}, status_code=500)
     response.headers.update(SECURITY_HEADERS)
+    if request.url.path in API_DOCS:
+        del response.headers["Content-Security-Policy"]
     return response
 
 _started = time.monotonic()
