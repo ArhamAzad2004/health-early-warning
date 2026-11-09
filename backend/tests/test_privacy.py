@@ -154,6 +154,7 @@ def test_employer_and_public_risk_come_only_from_published_values():
     for al in get("/api/alerts", role="employer_hse").json():
         rows = get("/api/signals", area_id=al["area_id"], role="employer_hse").json()["risk"]
         assert al["peak_risk"] == max(r["risk"] for r in rows if al["start"] <= r["date"] <= al["end"])
+        assert all(e["share"] == al["contributions"][e["signal"]] for e in al["evidence"])
 
 
 def test_authority_keeps_full_fidelity_risk():

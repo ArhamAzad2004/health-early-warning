@@ -138,7 +138,7 @@ def public_alert(al):
     total = sum(totals.values()) or 1
     shares = {s: round(v / total, 3) for s, v in sorted(totals.items(), key=lambda kv: -kv[1])}
     return dict(al, peak_risk=max(d["risk"] for d in days), contributions=shares,
-                evidence=[hide_small(al["area_id"], e) for e in al["evidence"]])
+                evidence=[dict(hide_small(al["area_id"], e), share=shares[e["signal"]]) for e in al["evidence"]])
 
 
 PUBLIC_ALERTS = [public_alert(al) for al in ALERTS]
