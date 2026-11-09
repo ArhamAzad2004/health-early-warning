@@ -75,3 +75,22 @@ def test_location_reliability_lowers_confidence_only():
 def test_unknown_location_stress_row():
     row = next(m for m in BACKTEST["missing_input"] if m["without"] == "unknown_location")
     assert row["sensitivity"] == 1.0 and row["mean_lead_time_days"] is not None
+
+
+def test_jump_days_show_each_outbreak_at_alert_level():
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    c = TestClient(app)
+    for sc in c.get("/api/meta").json()["scenarios"]:
+        assert sc["focus"] <= sc["peak"]
+        levels = {r["level"] for r in c.get("/api/risk", params={"date": sc["focus"]}).json()}
+        assert "alert" in levels, sc
+    # Other roles get the day from the areas they can see, on the risk their map shows: the focus day is
+    # at least as alarming as the harm peak. (The employer's only dust-storm area is Site B, the known miss.)
+    for role in ("employer_hse", "public"):
+        top = lambda d: max(r["risk"] for r in c.get("/api/risk", params={"date": d, "role": role}).json())  # noqa: B023
+        for sc in c.get("/api/meta", params={"role": role}).json()["scenarios"]:
+            assert top(sc["focus"]) >= top(sc["peak"]), (role, sc)
+    public = {s["id"]: s["focus"] for s in c.get("/api/meta", params={"role": "public"}).json()["scenarios"]}
+    assert public["S1"] == "2025-07-22"  # from Jebel Ali district only, never from the GBC site the public can't see

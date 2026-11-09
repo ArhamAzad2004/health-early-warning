@@ -13,7 +13,7 @@ export default function Overview({ role, date, setDate, onOpen }) {
   const [playing, setPlaying] = useState(false)
   const timer = useRef()
 
-  useEffect(() => { api('meta').then(setMeta).catch(() => setFailed(true)) }, [attempt])
+  useEffect(() => { api('meta', { role }).then(setMeta).catch(() => setFailed(true)) }, [role, attempt])  // jump days depend on the role
   useEffect(() => {
     let current = true  // ignore late answers for a role the user has already switched away from
     setAreas([]); setAlerts(null); setRisk([]); setNotes([]); setFailed(false)
@@ -99,8 +99,8 @@ export default function Overview({ role, date, setDate, onOpen }) {
           <div className="jumps">
             <span className="muted small">Jump to</span>
             {meta?.scenarios.map(s => (
-              <button key={s.id} className="btn" onClick={() => { setPlaying(false); setDate(s.peak) }}>
-                {s.short} · {fmtDate(s.peak)}
+              <button key={s.id} className="btn" onClick={() => { setPlaying(false); setDate(s.focus) }}>
+                {s.short} · {fmtDate(s.focus)}
               </button>
             ))}
           </div>

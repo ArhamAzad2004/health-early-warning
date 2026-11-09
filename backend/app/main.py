@@ -93,11 +93,24 @@ log.info("Generated %d areas, %d alerts and the back-test in %.1f s (build %s)",
          len(AREAS), len(ALERTS), STARTUP_SECONDS, BUILD)
 
 
+def focus(sc, role):
+    """The day a scenario looks most alarming on this role's map (highest risk in the areas it may see): what
+    "Jump to" opens. The harm peak itself comes later, when the alerts have done their job and risk is easing.
+    Uses the same risk the role's map shows, so it reveals nothing that role can't already see."""
+    areas = [a for a in sc["areas"] if visible(role, a)]
+    if not areas:
+        return sc["peak"].isoformat()
+    risk = (lambda a, i: SCORES[a]["days"][i]["risk"]) if role == "public_health" else (lambda a, i: PUBLIC_DAYS[a][i]["risk"])
+    days = [d for d in DATES if sc["start"] <= d <= sc["end"]]
+    return max(days, key=lambda d: max(risk(a, DATE_INDEX[d.isoformat()]) for a in areas)).isoformat()
+
+
 @app.get("/api/meta")
-def meta():
+def meta(role: str = Role):
     return dict(start=DATES[0].isoformat(), end=DATES[-1].isoformat(), signals=SIGNALS,
                 levels=dict(watch=engine.WATCH, warning=engine.WARNING, alert=engine.ALERT),
-                scenarios=[dict(id=s["id"], short=s["short"], peak=s["peak"].isoformat()) for s in SCENARIOS])  # no site names: public role reads this too
+                scenarios=[dict(id=s["id"], short=s["short"], peak=s["peak"].isoformat(), focus=focus(s, role))
+                           for s in SCENARIOS])  # no site names: public role reads this too
 
 
 @app.get("/api/areas")
