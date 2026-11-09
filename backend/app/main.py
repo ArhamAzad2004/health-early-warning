@@ -13,6 +13,21 @@ from .sim import AREAS, DATES, SCENARIOS, SIGNALS, generate
 
 app = FastAPI(title="Sentinel Dubai – health early warning")
 
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
+}
+
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    # shortcut: no Content-Security-Policy yet; Google Fonts, map tiles and Vite's inline styles need an allow-list
+    response = await call_next(request)
+    response.headers.update(SECURITY_HEADERS)
+    return response
+
 DATA = generate()
 SCORES, ALERTS = engine.run(DATA)
 BACKTEST = engine.backtest(DATA, ALERTS)

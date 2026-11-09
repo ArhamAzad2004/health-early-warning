@@ -93,3 +93,11 @@ def test_bad_inputs_rejected_cleanly():
     assert get("/api/risk", date="1999-01-01").status_code == 400
     assert get("/api/risk", date="not-a-date").status_code == 400
     assert get("/api/signals", area_id="../etc/passwd").status_code == 404
+
+
+@pytest.mark.parametrize("path", ["/api/meta", "/api/alerts", "/api/backtest?role=public", "/no-such-page"])
+def test_security_headers_on_every_response(path):
+    headers = client.get(path).headers
+    assert headers["x-content-type-options"] == "nosniff"
+    assert headers["x-frame-options"] == "DENY"
+    assert headers["referrer-policy"] == "no-referrer"
