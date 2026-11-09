@@ -21,3 +21,12 @@ test('neutralises spreadsheet formulas (CSV injection)', () => {
   assert.match(csv, /"'=HYPERLINK\(""http:\/\/evil""\)"/)
   assert.match(csv, /"'\+cmd"/)
 })
+
+test('also catches leading whitespace and fullwidth signs, but leaves numbers alone', () => {
+  const rowsIn = [{ area: ' =1+1', action: '＝1+1', start: '', end: '', level: '', category: '', roles: [], confidence: '' }]
+  const csv = summaryCsv({ ...backtest, mean_lead_time_days: -2 }, rowsIn, 'Public health')
+  assert.match(csv, /"' =1\+1"/)
+  assert.match(csv, /"'＝1\+1"/)
+  assert.match(csv, /"Mean lead time \(days\)","-2"/)
+  assert.match(csv, /"Scope","Public health"/)
+})

@@ -1,16 +1,19 @@
 // Regulator summary as CSV, built from data the API already returned (already aggregated and suppressed).
 
-// Quote every cell; neutralise spreadsheet formulas (CSV injection) by prefixing a quote.
+// Quote every cell; neutralise text a spreadsheet could run as a formula (CSV injection).
+// Leading whitespace and fullwidth signs count too. Numbers are left alone so -2 stays a number.
+const FORMULA_START = /^[\s=+\-@＝＋－＠]/
 const cell = v => {
   let s = v == null ? '' : String(v)
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
+  if (typeof v === 'string' && FORMULA_START.test(s)) s = `'${s}`
   return `"${s.replace(/"/g, '""')}"`
 }
 const rows = lines => lines.map(r => r.map(cell).join(',')).join('\r\n')
 
-export function summaryCsv(b, alerts) {
+export function summaryCsv(b, alerts, scope) {
   return rows([
     ['Sentinel Dubai summary', 'synthetic data, aggregated counts only'],
+    ['Scope', scope],
     [],
     ['Metric', 'Value'],
     ['Outbreaks detected', b.sensitivity], ['Affected areas flagged', b.area_sensitivity],

@@ -5,12 +5,13 @@ import { downloadCsv, summaryCsv } from './exportSummary.js'
 const pct = v => (v == null ? '–' : `${Math.round(v * 100)}%`)
 const CHOSEN = 4.5
 
-export default function Validation({ role }) {
+export default function Validation({ role, roleName }) {
   const [b, setB] = useState(null)
   const [areas, setAreas] = useState([])
   const [alerts, setAlerts] = useState([])
   useEffect(() => {
     let current = true  // ignore late answers for a previous role
+    setB(null); setAlerts([])  // never export one role's back-test with another role's alerts
     api('backtest', { role }).then(d => current && setB(d))
     api('areas', { role }).then(d => current && setAreas(d)).catch(() => current && setAreas([]))
     api('alerts', { role }).then(d => current && setAlerts(d)).catch(() => current && setAlerts([]))
@@ -23,7 +24,7 @@ export default function Validation({ role }) {
       <div className="validation-head">
         <p className="muted">Replayed 1 May – 30 Sep 2025 day by day, using each signal only once it would have been reported. Two outbreaks were injected as ground truth.</p>
         <div className="export no-print">
-          <button className="btn" onClick={() => downloadCsv(summaryCsv(b, alerts), 'sentinel-summary-2025-05-01_2025-09-30.csv')}>Download CSV</button>
+          <button className="btn" onClick={() => downloadCsv(summaryCsv(b, alerts, roleName), 'sentinel-summary-2025-05-01_2025-09-30.csv')}>Download CSV</button>
           <button className="btn" onClick={() => window.print()}>Print summary</button>
         </div>
       </div>

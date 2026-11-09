@@ -75,7 +75,7 @@ export default function App() {
       <main>
         {page === 'overview' && <Overview role={role} date={date} setDate={setDate} onOpen={open} />}
         {page === 'alert' && alert && <AlertDetail role={role} alert={alert} onBack={() => setPage('overview')} />}
-        {page === 'validation' && <Validation role={role} />}
+        {page === 'validation' && <Validation role={role} roleName={ROLES[role]} />}
         {page === 'privacy' && <Privacy roles={ROLES} />}
       </main>
     </div>
