@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/ArhamAzad2004/health-early-warning/actions/workflows/ci.yml/badge.svg)](https://github.com/ArhamAzad2004/health-early-warning/actions/workflows/ci.yml)
 
+**Live demo: https://sentinel-dubai.onrender.com** (free hosting: the first visit after a quiet spell can take up to a minute to wake up)
+
 Early signs of a health threat rarely sit in one dataset: a few extra clinic visits, more sick days at a
 company, extra incident reports on a building site, an unusually hot or dusty day. Sentinel Dubai fuses clinic visits, lab positives, sickness absence, occupational incident reports, heat index and air quality
 for Dubai districts and a (fictional) construction employer, Gulf Build Co., and raises **explainable,
@@ -85,6 +87,8 @@ Open http://localhost:5173, press **Play** on the timeline, then click an alert.
 Tests: `npm test`
 
 ## Deploy (one public link)
+
+Live at https://sentinel-dubai.onrender.com, redeployed automatically on every merge to `main`.
 
 The `Dockerfile` builds the dashboard and serves it from the API, so the whole demo is one app.
 On [Render](https://render.com): **New → Blueprint**, pick this repo, and it reads `render.yaml`
