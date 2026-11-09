@@ -12,11 +12,17 @@ export default function Overview({ role, date, setDate, onOpen }) {
 
   useEffect(() => { api('meta').then(setMeta) }, [])
   useEffect(() => {
-    setAreas([]); setAlerts([]); setRisk([])  // never show the previous role's data while the new role loads
-    api('areas', { role }).then(setAreas)
-    api('alerts', { role }).then(setAlerts)
+    let current = true  // ignore late answers for a role the user has already switched away from
+    setAreas([]); setAlerts([]); setRisk([])
+    api('areas', { role }).then(d => current && setAreas(d))
+    api('alerts', { role }).then(d => current && setAlerts(d))
+    return () => { current = false }
   }, [role])
-  useEffect(() => { api('risk', { date, role }).then(setRisk) }, [date, role])
+  useEffect(() => {
+    let current = true
+    api('risk', { date, role }).then(d => current && setRisk(d))
+    return () => { current = false }
+  }, [date, role])
 
   const days = useMemo(() => {
     if (!meta) return []

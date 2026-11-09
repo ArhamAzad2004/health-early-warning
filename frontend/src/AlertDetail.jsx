@@ -5,7 +5,11 @@ import { api, LEVELS, fmtDate } from './api.js'
 export default function AlertDetail({ role, alert, onBack }) {
   const [sig, setSig] = useState(null)
   const [meta, setMeta] = useState(null)
-  useEffect(() => { api('signals', { area_id: alert.area_id, role }).then(setSig).catch(() => setSig(null)) }, [alert, role])
+  useEffect(() => {
+    let current = true  // ignore late answers for a previous alert or role
+    api('signals', { area_id: alert.area_id, role }).then(d => current && setSig(d)).catch(() => current && setSig(null))
+    return () => { current = false }
+  }, [alert, role])
   useEffect(() => { api('meta').then(setMeta) }, [])
 
   const lv = LEVELS[alert.level]
