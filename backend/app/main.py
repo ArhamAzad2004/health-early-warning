@@ -101,7 +101,9 @@ def alerts(role: str = Role):
 def backtest(role: str = Role):
     if role == "public":
         raise HTTPException(403, "Validation detail is for public health and employer roles")
-    return BACKTEST
+    lists = ("areas_hit", "areas_affected", "missed_areas")
+    scenarios = [dict(s, **{k: [a for a in s[k] if visible(role, a)] for k in lists}) for s in BACKTEST["scenarios"]]
+    return dict(BACKTEST, scenarios=scenarios)
 
 
 @app.get("/api/live")
