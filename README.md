@@ -10,6 +10,44 @@ privacy-preserving alerts** that name a proportionate action and who should take
 Health and workforce data are **simulated** (fixed seed, two injected outbreaks). Live Dubai weather and air
 quality come from [Open-Meteo](https://open-meteo.com) (free, no key).
 
+## Screenshots
+
+**Overview** — replay the season on a map of Dubai; alerts list the action and who should take it.
+
+![Overview: map of Dubai with risk circles, timeline replay and alert list](docs/images/overview.png)
+
+**Alert detail** — what drove the risk, the recommended action and owner, each signal against its own baseline, evidence and assumptions.
+
+![Alert detail for GBC Site A: contribution bars, risk timeline, signals vs baseline, evidence table](docs/images/alert-detail.png)
+
+**Validation** — back-test results, threshold calibration, missing-feed behaviour and estimated impact.
+
+![Validation page: detection, lead time, precision, calibration sweep, missing-input table, impact estimate](docs/images/validation.png)
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph UI["React + Vite dashboard"]
+    OV[Overview: map, replay, alerts]
+    AD[Alert detail]
+    VAL[Validation]
+    PR[Privacy & roles]
+  end
+  subgraph API["FastAPI backend (one container)"]
+    SIM["sim.py — seeded synthetic districts, sites, signals, outbreaks"]
+    ENG["engine.py — baselines, z-scores, EWMA, latency-aware fusion, alerts, playbook, back-test"]
+    MAIN["main.py — role-filtered endpoints, small-cell suppression, serves the built dashboard"]
+  end
+  OM[(Open-Meteo weather + air quality)]
+  UI -- "/api/*" --> MAIN
+  MAIN --> ENG --> SIM
+  MAIN -- "live strip, cached 10 min" --> OM
+```
+
+Everything runs in memory: at startup the backend generates the data, scores every area, finds alerts and runs
+the back-test once; requests only read, filter by role and suppress small counts.
+
 ## What it does
 
 | Capability | Where to see it |
