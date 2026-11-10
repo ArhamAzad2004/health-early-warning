@@ -56,6 +56,7 @@ SCORES, ALERTS = engine.run(DATA)
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
 LIVE_CACHE = []  # [fetched_at, result, ttl]; protects the free Open-Meteo quota once the demo is public
+LIVE_UA = "sentinel-dubai/1.0 (+https://sentinel-dubai.onrender.com)"
 LIVE_LOCK = threading.Lock()  # one upstream refresh at a time; others get the last answer, so a burst can't tie up threads
 Role = Query("public_health", pattern="^(public_health|employer_hse|public)$")
 ENV = {"heat_index", "aqi"}
@@ -246,12 +247,15 @@ def _fetch_live():
                "&current=pm10,pm2_5,us_aqi,dust&timezone=Asia%2FDubai",
     }
     try:
-        got = {k: json.load(urllib.request.urlopen(u, timeout=6))["current"] for k, u in urls.items()}
+        # A named client instead of urllib's default "Python-urllib" agent, which shared hosts often block.
+        got = {k: json.load(urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": LIVE_UA}), timeout=6))["current"]
+               for k, u in urls.items()}
         w, a = got["weather"], got["air"]
         result = dict(ok=True, time=w["time"], temperature=w["temperature_2m"], humidity=w["relative_humidity_2m"],
                       feels_like=w["apparent_temperature"], pm10=a.get("pm10"), pm2_5=a.get("pm2_5"),
                       us_aqi=a.get("us_aqi"), dust=a.get("dust"), source="Open-Meteo")
-    except Exception:  # noqa: BLE001 - any upstream failure (offline, timeout, bad JSON) falls back; the demo must still work
+    except Exception as e:  # noqa: BLE001 - any upstream failure (offline, timeout, bad JSON) falls back; the demo must still work
+        log.warning("Live weather unavailable: %.200r", e)  # without this a hosted-only failure is invisible
         return dict(ok=False, error="unavailable", fetched=date.today().isoformat()), 60
     return result, 600
 
