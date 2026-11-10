@@ -219,3 +219,17 @@ def test_live_requests_during_the_first_fetch_wait_for_it(monkeypatch):
     second = main_module.live()  # arrives mid-fetch with nothing cached: must get the first fetch's result
     first.join()
     assert second is main_module.LIVE_CACHE[1]
+
+
+def test_live_failure_reason_is_logged_and_requests_name_the_client(monkeypatch, caplog):
+    seen = []
+
+    def blocked(req, timeout):
+        seen.append(req.get_header("User-agent"))
+        raise OSError("HTTP Error 429: Too Many Requests")
+    monkeypatch.setattr(main_module.urllib.request, "urlopen", blocked)
+    monkeypatch.setattr(main_module, "LIVE_CACHE", [])
+    with caplog.at_level("WARNING", logger="uvicorn.error"):
+        assert client.get("/api/live").json()["ok"] is False
+    assert "429" in caplog.text  # a hosted-only failure must show its cause in the server log
+    assert seen == [main_module.LIVE_UA]
