@@ -4,7 +4,7 @@ import os
 import threading
 import time
 import urllib.request
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
@@ -55,8 +55,10 @@ DATA = generate()
 SCORES, ALERTS = engine.run(DATA)
 DATE_INDEX = {d.isoformat(): i for i, d in enumerate(DATES)}
 
-LIVE_CACHE = []  # [fetched_at, result, ttl]; protects the free Open-Meteo quota once the demo is public
-LIVE_UA = "sentinel-dubai/1.0 (+https://sentinel-dubai.onrender.com)"
+LIVE_CACHE = []  # [fetched_at, result, ttl]; keeps us well inside MET Norway's fair-use terms once the demo is public
+# MET Norway's terms require a User-Agent naming the app and a contact; the repo is the contact.
+LIVE_UA = "sentinel-dubai/1.0 (+https://github.com/ArhamAzad2004/health-early-warning)"
+DUBAI_TZ = timezone(timedelta(hours=4))
 LIVE_LOCK = threading.Lock()  # one upstream refresh at a time; others get the last answer, so a burst can't tie up threads
 Role = Query("public_health", pattern="^(public_health|employer_hse|public)$")
 ENV = {"heat_index", "aqi"}
@@ -219,7 +221,7 @@ def backtest(role: str = Role):
 
 @app.get("/api/live")
 def live():
-    """Current Dubai weather and air quality from Open-Meteo (free, no key), cached for 10 minutes."""
+    """Current Dubai temperature and humidity from MET Norway (free, no key), cached for 10 minutes."""
     if LIVE_CACHE and time.monotonic() - LIVE_CACHE[0] < LIVE_CACHE[2]:
         return LIVE_CACHE[1]
     if not LIVE_LOCK.acquire(blocking=False):  # another request is refreshing
@@ -239,21 +241,19 @@ def live():
 
 def _fetch_live():
     """(result, seconds to cache it): 10 minutes when fresh, 1 minute after a failure so retries stay cheap."""
-    lat, lon = 25.2048, 55.2708
-    urls = {
-        "weather": f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
-                   "&current=temperature_2m,relative_humidity_2m,apparent_temperature&timezone=Asia%2FDubai",
-        "air": f"https://air-quality-api.open-meteo.com/v1/air-quality?latitude={lat}&longitude={lon}"
-               "&current=pm10,pm2_5,us_aqi,dust&timezone=Asia%2FDubai",
-    }
+    # MET Norway, not Open-Meteo: Open-Meteo's per-IP free quota is used up by other tenants of Render's shared IP (429).
+    url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=25.2048&lon=55.2708"
     try:
-        # A named client instead of urllib's default "Python-urllib" agent, which shared hosts often block.
-        got = {k: json.load(urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": LIVE_UA}), timeout=6))["current"]
-               for k, u in urls.items()}
-        w, a = got["weather"], got["air"]
-        result = dict(ok=True, time=w["time"], temperature=w["temperature_2m"], humidity=w["relative_humidity_2m"],
-                      feels_like=w["apparent_temperature"], pm10=a.get("pm10"), pm2_5=a.get("pm2_5"),
-                      us_aqi=a.get("us_aqi"), dust=a.get("dust"), source="Open-Meteo")
+        resp = urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": LIVE_UA}), timeout=6)
+        now = json.loads(resp.read(1_000_000))["properties"]["timeseries"][0]  # capped: a normal answer is ~50 KB
+        details = now["data"]["instant"]["details"]
+        temperature, humidity = float(details["air_temperature"]), float(details["relative_humidity"])
+        if not (-50 <= temperature <= 70 and 0 <= humidity <= 100):  # also rejects NaN/Infinity, which would break the JSON response
+            raise ValueError(f"implausible reading {temperature!r} °C, {humidity!r} %")
+        # MET answers in UTC; Dubai is UTC+4 all year (no daylight saving).
+        local = datetime.fromisoformat(now["time"]).astimezone(DUBAI_TZ)
+        result = dict(ok=True, time=local.strftime("%Y-%m-%dT%H:%M"), temperature=temperature,
+                      humidity=round(humidity), source="MET Norway")
     except Exception as e:  # noqa: BLE001 - any upstream failure (offline, timeout, bad JSON) falls back; the demo must still work
         log.warning("Live weather unavailable: %.200r", e)  # without this a hosted-only failure is invisible
         return dict(ok=False, error="unavailable", fetched=date.today().isoformat()), 60

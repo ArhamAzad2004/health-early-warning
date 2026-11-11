@@ -1,7 +1,7 @@
 # Sentinel Dubai — Product Requirements (PRD)
 
 Portfolio project addressing the "Population and Workforce Health Early Warning" problem.
-Repo: `health-early-warning`. Stack: Python FastAPI + React (Vite). Data: fully simulated health/work data, plus live Dubai weather and air quality from Open-Meteo.
+Repo: `health-early-warning`. Stack: Python FastAPI + React (Vite). Data: fully simulated health/work data, plus live Dubai temperature and humidity from MET Norway.
 
 ## 1. Problem
 
@@ -48,7 +48,7 @@ Sentinel Dubai is an early-warning console that fuses population, environmental,
 - **F5 Alert cards** — area, dates, peak risk, level, per-signal contribution shares, evidence (value vs baseline, z, date), action, roles, assumptions, data completeness and confidence.
 - **F6 Rule-based playbook** — three branches: site heat pattern, district heat pattern, respiratory/air-quality pattern; each with an urgent and a lower-level wording.
 - **F7 Map + timeline** — Leaflet map of Dubai, circles sized and coloured by risk level, date slider to replay the season.
-- **F8 Live environment strip** — current Dubai temperature, humidity, feels-like, PM10, PM2.5, US AQI and dust from Open-Meteo, with graceful offline fallback.
+- **F8 Live environment strip** — current Dubai temperature and humidity from MET Norway, with graceful offline fallback.
 - **F9 Privacy & roles** — aggregated counts, "<5" suppression, role switcher (`public_health`, `employer_hse`, `public`), boundary banner, governance panel.
 - **F10 Validation page** — back-test metrics, lead time per scenario, five missing-input re-runs, calibration sweep, impact estimate with assumptions.
 
@@ -87,7 +87,7 @@ Sentinel Dubai is an early-warning console that fuses population, environmental,
 |---|---|
 | Scenarios too obvious → looks staged | Poisson noise, missing gaps and a feed outage are in the data; false alarm and the missed GBC Site B area are accepted as a known limit and shown honestly on the Validation page. |
 | Threshold tuned to the demo only | Calibration sweep and five missing-input re-runs on the Validation page; weights and thresholds printed in every alert's assumptions. |
-| Open-Meteo offline during a demo | `/api/live` returns `ok: false`; UI shows "Live feed unavailable" and nothing else breaks. |
+| MET Norway offline during a demo | `/api/live` returns `ok: false`; UI shows "Live feed unavailable" and nothing else breaks. |
 | Viewers ask "is it real?" | Say up front: synthetic health/work data, real weather; schema designed for real feeds. |
 | Alert fatigue critique | Persistence rule, corroboration rule, three severity levels, false-alarm count on screen. |
 

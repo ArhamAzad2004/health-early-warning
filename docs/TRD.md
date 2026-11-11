@@ -15,7 +15,7 @@ flowchart LR
     ENG[engine.py: baseline, z, EWMA, latency, fusion, alerts, playbook, back-test]
     MAIN[main.py: endpoints, role scope, small-cell suppression, live client]
   end
-  OM[(Open-Meteo forecast + air-quality APIs)]
+  OM[(MET Norway locationforecast API)]
   Browser -- "/api/* (Vite proxy)" --> MAIN
   MAIN --> SIM & ENG
   MAIN --> OM
@@ -29,7 +29,7 @@ Everything lives in memory. On startup `main.py` calls `generate()` (seed 42), `
 |---|---|
 | `backend/app/sim.py` | 153 days (2025-05-01 … 2025-09-30) × 11 areas. Seasonal heat, Poisson counts, two injected scenarios, ~3 % random nulls, one 3-day absence feed outage at Site A (20–22 Jul). |
 | `backend/app/engine.py` | Baseline/z/EWMA per signal, latency-aware daily risk with contributions, alert opening/closing, description (shares, evidence, completeness, confidence), playbook, back-test metrics, missing-input re-runs, calibration sweep, impact estimate. |
-| `backend/app/main.py` | Endpoints `/api/meta`, `/api/areas`, `/api/signals`, `/api/risk`, `/api/alerts`, `/api/backtest`, `/api/live`. Role visibility, suppression, public-role trimming, Open-Meteo fetch. |
+| `backend/app/main.py` | Endpoints `/api/meta`, `/api/areas`, `/api/signals`, `/api/risk`, `/api/alerts`, `/api/backtest`, `/api/live`. Role visibility, suppression, public-role trimming, MET Norway fetch. |
 | `frontend/` | Overview, Alert detail, Validation, Privacy pages; one role state; Leaflet map; simple charts. |
 
 ## 3. Data model summary
@@ -105,9 +105,9 @@ Current result (seed 42): sensitivity 1.0, area sensitivity 0.8 (GBC Site B not 
 
 ## 8. Live data integration
 
-- Weather: `https://api.open-meteo.com/v1/forecast?latitude=25.2048&longitude=55.2708&current=temperature_2m,relative_humidity_2m,apparent_temperature&timezone=Asia%2FDubai`
-- Air: `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=25.2048&longitude=55.2708&current=pm10,pm2_5,us_aqi,dust&timezone=Asia%2FDubai`
-- No key, 6 s timeout, `urllib` only. Success → `ok: true` with `time, temperature, humidity, feels_like, pm10, pm2_5, us_aqi, dust, source`. Any failure → `ok: false, error, fetched`.
+- Weather: `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=25.2048&lon=55.2708` (first timeseries entry, UTC converted to Dubai time).
+- No key; MET's terms require a User-Agent naming the app and a contact (the repo URL). 6 s timeout, `urllib` only. Success → `ok: true` with `time, temperature, humidity, source`. Any failure → `ok: false, error, fetched`, and the reason is logged.
+- Open-Meteo was dropped: its per-IP free quota is shared with other tenants of the host's outbound IP, so the hosted backend got HTTP 429. Air quality and dust are no longer shown live.
 - Display only; live values do not enter detection (the data window is 2025, the feed is today).
 
 ## 9. Tech choices and why
@@ -119,7 +119,7 @@ Current result (seed 42): sensitivity 1.0, area sensitivity 0.8 (GBC Site B not 
 | In-memory, seeded | Zero setup, deterministic demo, restart = clean state. |
 | React + Vite | Fast dev loop, proxy `/api` to 8000 with one config line. |
 | Leaflet + OpenStreetMap tiles | Free map, no key, circle markers are enough. |
-| Open-Meteo | Free, no key, has both weather and air quality. |
+| MET Norway | Free, no key, quota by User-Agent rather than by shared IP. |
 
 ## 10. Non-functional requirements
 

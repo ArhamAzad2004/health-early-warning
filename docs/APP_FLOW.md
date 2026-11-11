@@ -31,7 +31,7 @@ flowchart TD
 - **Map** (Leaflet): one circle per area from `/api/areas`, radius and colour by `level` from `/api/risk?date=`; label always shows the level word (`normal`, `watch`, `warning`, `alert`).
 - **Date slider**: `/api/meta` gives `start`/`end` (2025-05-01 → 2025-09-30) and the three thresholds; play button steps 1 day per ~150 ms.
 - **Alert feed**: alerts from `/api/alerts` whose `start` ≤ selected date, newest first; each card shows `area`, `level`, `start`–`end`, top two `contributions`, `completeness`.
-- **Live strip**: `/api/live` → temperature, humidity, feels-like, PM10, PM2.5, US AQI, dust; "Live feed unavailable" when `ok` is false.
+- **Live strip**: `/api/live` → temperature and humidity (MET Norway); "Live feed unavailable" when `ok` is false.
 - **Role switcher** and **privacy banner** in the header on every page.
 
 ### Alert detail
@@ -86,7 +86,7 @@ Uses the `public_health` view. Sees site alerts where "Occupational Health Inspe
 
 ## 6. Empty and error states
 
-- `/api/live` returns `ok: false` → strip shows "Live feed unavailable (Open-Meteo)"; nothing else changes.
+- `/api/live` returns `ok: false` → strip shows "Live Dubai conditions unavailable"; nothing else changes.
 - Date before any alert → feed shows "No alerts open on this date".
 - `public` role → Validation page shows "Validation detail is for public health and employer roles" (the API's 403 message).
 - `/api/risk` with a date outside the window → 400; the slider never produces one.
