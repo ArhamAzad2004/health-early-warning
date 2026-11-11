@@ -8,7 +8,7 @@ client = TestClient(app)
 
 
 def notes(**params):
-    return client.get("/api/notifications", params=params)
+    return client.get("/api/notifications", params={"role": "public_health", **params})
 
 
 def test_heat_cluster_notifies_site_and_district_owners():
