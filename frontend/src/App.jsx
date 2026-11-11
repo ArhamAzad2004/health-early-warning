@@ -145,11 +145,9 @@ function LiveStrip({ live }) {
   return (
     <div className="live">
       <span className="live-dot" aria-hidden /> <strong>Live Dubai now</strong>
-      <span>{live.temperature}°C (feels {live.feels_like}°C)</span>
+      <span>{live.temperature}°C</span>
       <span>Humidity {live.humidity}%</span>
-      <span>PM10 {live.pm10} µg/m³</span>
-      <span>US AQI {live.us_aqi}</span>
-      <span className="muted">Open-Meteo · {live.time?.replace('T', ' ')}</span>
+      <span className="muted">{live.source} · {live.time?.replace('T', ' ')}</span>
     </div>
   )
 }

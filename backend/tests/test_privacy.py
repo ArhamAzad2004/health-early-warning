@@ -233,3 +233,24 @@ def test_live_failure_reason_is_logged_and_requests_name_the_client(monkeypatch,
         assert client.get("/api/live").json()["ok"] is False
     assert "429" in caplog.text  # a hosted-only failure must show its cause in the server log
     assert seen == [main_module.LIVE_UA]
+
+
+def test_live_reads_met_norway_in_dubai_time_with_weather_fields_only(monkeypatch):
+    import io
+    import json
+    payload = {"properties": {"timeseries": [{"time": "2026-11-11T17:00:00Z", "data": {"instant": {"details": {
+        "air_temperature": 28.5, "relative_humidity": 53.4, "wind_speed": 5.4}}}}]}}
+    monkeypatch.setattr(main_module.urllib.request, "urlopen",
+                        lambda req, timeout: io.BytesIO(json.dumps(payload).encode()))
+    monkeypatch.setattr(main_module, "LIVE_CACHE", [])
+    assert client.get("/api/live").json() == dict(ok=True, time="2026-11-11T21:00", temperature=28.5,
+                                                 humidity=53, source="MET Norway")
+
+
+def test_live_rejects_an_implausible_upstream_reading(monkeypatch):
+    import io
+    body = b'{"properties": {"timeseries": [{"time": "2026-11-11T17:00:00Z", "data": {"instant": {"details": ' \
+           b'{"air_temperature": NaN, "relative_humidity": 50}}}}]}}'
+    monkeypatch.setattr(main_module.urllib.request, "urlopen", lambda req, timeout: io.BytesIO(body))
+    monkeypatch.setattr(main_module, "LIVE_CACHE", [])
+    assert client.get("/api/live").json()["ok"] is False  # NaN would otherwise crash the JSON response and stay cached

@@ -173,7 +173,6 @@ One notification per responsible role, dated the day the alert opens. Built only
 
 ### `GET /api/live`
 ```json
-{"ok": true, "time": "2026-10-27T13:00", "temperature": 34.1, "humidity": 58, "feels_like": 39.6,
- "pm10": 71.0, "pm2_5": 28.4, "us_aqi": 62, "dust": 12.0, "source": "Open-Meteo"}
+{"ok": true, "time": "2026-10-27T13:00", "temperature": 34.1, "humidity": 58, "source": "MET Norway"}
 ```
 On failure (6 s timeout or any error): `{"ok": false, "error": "...", "fetched": "2026-10-27"}`.
