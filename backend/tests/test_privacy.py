@@ -153,7 +153,7 @@ def test_employer_and_public_risk_come_only_from_published_values():
     """Risk on the employer and public views must be reproducible from published values alone."""
     for area in AREAS:
         published = {s: [r["value"] for r in rows]
-                     for s, rows in get("/api/signals", area_id=area).json()["signals"].items()}
+                     for s, rows in get("/api/signals", area_id=area, role="public_health").json()["signals"].items()}
         risk = [d["risk"] for d in score_area(published)[1]]
         for role in ("employer_hse", "public"):
             if area not in visible_areas(role):
@@ -254,3 +254,8 @@ def test_live_rejects_an_implausible_upstream_reading(monkeypatch):
     monkeypatch.setattr(main_module.urllib.request, "urlopen", lambda req, timeout: io.BytesIO(body))
     monkeypatch.setattr(main_module, "LIVE_CACHE", [])
     assert client.get("/api/live").json()["ok"] is False  # NaN would otherwise crash the JSON response and stay cached
+
+
+def test_a_request_without_a_role_gets_the_least_privileged_view():
+    assert {a["id"] for a in get("/api/areas").json()} == visible_areas("public")
+    assert get("/api/backtest").status_code == 403  # validation detail is for named roles only

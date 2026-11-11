@@ -21,7 +21,7 @@ def test_missed_areas_reported_as_known_limit():
 
 
 def test_small_cells_suppressed():
-    rows = client.get("/api/signals", params={"area_id": "gbc_site_a"}).json()["signals"]["incidents"]
+    rows = client.get("/api/signals", params={"area_id": "gbc_site_a", "role": "public_health"}).json()["signals"]["incidents"]
     assert all(r["value"] is None or r["value"] == 0 or r["value"] >= 5 for r in rows)
     assert any(r["suppressed"] for r in rows)
 
@@ -35,7 +35,7 @@ def test_roles_limit_views():
 
 
 def test_alert_explains_itself():
-    al = client.get("/api/alerts").json()[0]
+    al = client.get("/api/alerts", params={"role": "public_health"}).json()[0]
     assert al["contributions"] and al["evidence"] and al["roles"] and al["action"] and al["assumptions"]
 
 
@@ -59,7 +59,7 @@ def test_suppressed_cells_reveal_nothing():
     for role, area in [("employer_hse", "gbc_site_a"), ("public_health", "jebel_ali")]:
         for rows in client.get("/api/signals", params={"area_id": area, "role": role}).json()["signals"].values():
             assert all(r["baseline"] is None and r["z"] is None for r in rows if r["suppressed"])
-    for al in client.get("/api/alerts").json():
+    for al in client.get("/api/alerts", params={"role": "public_health"}).json():
         assert all(e["baseline"] is None and e["z"] is None for e in al["evidence"] if e["value"] is None)
 
 
@@ -82,9 +82,9 @@ def test_jump_days_show_each_outbreak_at_alert_level():
 
     from app.main import app
     c = TestClient(app)
-    for sc in c.get("/api/meta").json()["scenarios"]:
+    for sc in c.get("/api/meta", params={"role": "public_health"}).json()["scenarios"]:
         assert sc["focus"] <= sc["peak"]
-        levels = {r["level"] for r in c.get("/api/risk", params={"date": sc["focus"]}).json()}
+        levels = {r["level"] for r in c.get("/api/risk", params={"date": sc["focus"], "role": "public_health"}).json()}
         assert "alert" in levels, sc
     # Other roles get the day from the areas they can see, on the risk their map shows: the focus day is
     # at least as alarming as the harm peak. (The employer's only dust-storm area is Site B, the known miss.)

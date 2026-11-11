@@ -60,7 +60,7 @@ LIVE_CACHE = []  # [fetched_at, result, ttl]; keeps us well inside MET Norway's 
 LIVE_UA = "sentinel-dubai/1.0 (+https://github.com/ArhamAzad2004/health-early-warning)"
 DUBAI_TZ = timezone(timedelta(hours=4))
 LIVE_LOCK = threading.Lock()  # one upstream refresh at a time; others get the last answer, so a burst can't tie up threads
-Role = Query("public_health", pattern="^(public_health|employer_hse|public)$")
+Role = Query("public", pattern="^(public_health|employer_hse|public)$")
 ENV = {"heat_index", "aqi"}
 
 

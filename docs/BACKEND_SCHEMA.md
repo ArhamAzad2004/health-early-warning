@@ -88,7 +88,7 @@ Applied to every count signal in `/api/signals` and to `evidence[].value` in `/a
 
 ## 3. API
 
-All endpoints are `GET`, JSON. All except `/api/meta` and `/api/live` accept `?role=public_health|employer_hse|public` (default `public_health`; anything else → 422). Example values below are illustrative; the seeded run is the source of truth.
+All endpoints are `GET`, JSON. All except `/api/live` accept `?role=public_health|employer_hse|public` (default `public`, the least-privileged view; anything else → 422). Example values below are illustrative; the seeded run is the source of truth.
 
 ### `GET /api/meta`
 ```json
